@@ -48,7 +48,7 @@ Browser tests: `npm test` (set `PLAYWRIGHT_EXECUTABLE_PATH` if using an existing
 
 ## Native Meiro Web Banners
 
-Two examples are planned to be **authored and delivered by Meiro**, alongside the website-rendered lifecycle cards. They should be enabled only on the Etstur Web SDK source and on the hosts `etsdemo.netlify.app`, `127.0.0.1` and `localhost`. Customer content, layout, page/host conditions, trigger and frequency cap live in Engage → Channels → Web Banners. Their IDs are not configured yet: set them in `NATIVE_BANNERS` (`src/demo/NativeBanners.jsx`) once supplied.
+Two examples are **authored and delivered by Meiro**, alongside the website-rendered lifecycle cards: [In-page · Bodrum sezon sonu](https://ets-demo.eu1.pipes.meiro.io/channels/web-banners/9b0cbda4-385f-4020-80b1-33986a5b6765) (homepage, 5 impressions per session) and [Popup · Fiyat alarmı rehberi](https://ets-demo.eu1.pipes.meiro.io/channels/web-banners/6540341a-5b29-4356-b9f2-c91474ad1ecb) (hotel page, click on “Fiyat alarmı nasıl çalışır?”, 1 per session). They are enabled only on the Etstur Web SDK source and on the hosts `etsdemo.netlify.app`, `127.0.0.1` and `localhost`. Customer content, layout, page/host conditions, trigger and frequency cap live in Engage → Channels → Web Banners; IDs are in `NATIVE_BANNERS` (`src/demo/NativeBanners.jsx`).
 
 | Example | Where / trigger | Planned frequency |
 | --- | --- | --- |

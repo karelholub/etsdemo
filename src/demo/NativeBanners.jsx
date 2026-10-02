@@ -3,20 +3,19 @@ import { readConsent } from "../tracking";
 
 export const MEIRO_APP = "https://ets-demo.eu1.pipes.meiro.io";
 
-// Native Meiro Web Banners for the ETS demo. The banners are authored in
-// Engage → Channels → Web Banners on the ets-demo instance. Their IDs and editor
-// links will be supplied later — fill them in here once they exist. Until then
-// the guide links to the generic Web Banners list. Do not invent IDs.
+// Native Meiro Web Banners for the ETS demo, authored in Engage → Channels →
+// Web Banners on the ets-demo instance (source "Etstur Web"). Meiro owns their
+// HTML, page/host conditions, trigger and frequency cap.
 export const NATIVE_BANNERS = {
   inpage: {
-    id: null, // TODO: Meiro web banner ID for the homepage in-page strip
+    id: "9b0cbda4-385f-4020-80b1-33986a5b6765", // In-page · Bodrum sezon sonu
     anchor: "#ets-meiro-inpage",
-    frequency: "5 impressions per SDK session (planned)",
+    frequency: "5 impressions per SDK session",
   },
   popup: {
-    id: null, // TODO: Meiro web banner ID for the price-watch popup
+    id: "6540341a-5b29-4356-b9f2-c91474ad1ecb", // Popup · Fiyat alarmı rehberi
     trigger: "#ets-price-help",
-    frequency: "1 impression per SDK session (planned)",
+    frequency: "1 impression per SDK session",
   },
 };
 export const bannerEditorURL = (banner) =>
