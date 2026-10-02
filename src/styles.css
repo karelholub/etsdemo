@@ -208,7 +208,7 @@ h3 {
   gap: 18px;
 }
 .logo-button img {
-  width: 208px;
+  width: 196px;
   height: auto;
 }
 .main-nav {
@@ -222,9 +222,9 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 8px 8px;
+  padding: 8px 7px;
   font-family: var(--head);
-  font-size: 15.5px;
+  font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
   color: var(--navy);
@@ -285,7 +285,7 @@ h3 {
 /* Hero */
 .hero {
   position: relative;
-  min-height: 520px;
+  padding-bottom: 76px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -534,7 +534,7 @@ h3 {
 }
 .story-row {
   display: flex;
-  gap: 22px;
+  gap: 18px;
   overflow-x: auto;
   scrollbar-width: none;
   padding: 6px 2px 8px;
@@ -543,7 +543,7 @@ h3 {
   display: none;
 }
 .story {
-  flex: 0 0 140px;
+  flex: 0 0 130px;
   display: grid;
   justify-items: center;
   gap: 12px;
@@ -552,8 +552,8 @@ h3 {
 .ring {
   position: relative;
   display: block;
-  width: 140px;
-  height: 140px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   padding: 5px;
   background: conic-gradient(
@@ -598,7 +598,7 @@ h3 {
   color: var(--blue);
 }
 .story-wide {
-  flex: 0 0 380px;
+  flex: 0 0 300px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -779,7 +779,7 @@ h3 {
   grid-row: span 2;
 }
 .region-card:nth-child(4) {
-  grid-column: span 2;
+  grid-row: span 2;
 }
 .region-card img {
   width: 100%;
@@ -1585,6 +1585,7 @@ main > .empty {
 }
 .room-search .primary {
   justify-content: center;
+  background: var(--blue);
   color: #fff;
   border: 0;
   font-size: 16px;
@@ -2268,7 +2269,7 @@ footer {
   .logo-button img {
     width: 170px;
   }
-  .account-pill button:nth-child(3) {
+  .utility button:nth-child(3) {
     display: none;
   }
 }
@@ -2450,7 +2451,7 @@ footer {
     gap: 12px;
   }
   .region-card:nth-child(4) {
-    grid-column: auto;
+    grid-row: auto;
   }
   .regions {
     padding-top: 44px;

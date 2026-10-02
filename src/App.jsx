@@ -489,7 +489,7 @@ export function App() {
     onChange: (name) => track("filter_results", { filter: name }),
   };
 
-  const SearchFields = ({ variant = "hero" }) => (
+  const SearchFields = ({ variant = "in-hero" }) => (
     <form
       className={"search-fields " + variant}
       onSubmit={(e) => {
@@ -504,9 +504,9 @@ export function App() {
       >
         <Icon name="pin" />
         <span>
-          {variant === "hero" && <small>Nereye gitmek istersin?</small>}
+          {variant === "in-hero" && <small>Nereye gitmek istersin?</small>}
           <strong>
-            {route.startsWith("/otel/") && variant !== "hero"
+            {route.startsWith("/otel/") && variant !== "in-hero"
               ? hotel.name
               : `${destination} Otelleri`}
           </strong>
@@ -545,7 +545,7 @@ export function App() {
           <strong>{party(adults, children)}</strong>
         </span>
       </button>
-      {travelType !== "Sadece Otel" && variant === "hero" && (
+      {travelType !== "Sadece Otel" && variant === "in-hero" && (
         <button
           type="button"
           className="search-field origin-field"
@@ -689,14 +689,12 @@ export function App() {
                 <Icon name="doc" size={17} />
                 <span>Rezervasyonlarım</span>
               </button>
-              <button onClick={() => go("/favorilerim")}>
-                <Icon name="heart" size={17} />
-                <span>
-                  Favorilerim{saved.length ? ` (${saved.length})` : ""}
-                </span>
-              </button>
             </div>
             <div className="utility">
+              <button onClick={() => go("/favorilerim")}>
+                <Icon name="heart" size={16} />
+                Favorilerim{saved.length ? ` (${saved.length})` : ""}
+              </button>
               <button onClick={() => setModal("help")}>
                 Yardım <Icon name="down" size={14} />
               </button>
@@ -720,7 +718,7 @@ export function App() {
         {route === "/rezervasyonlarim" && (
           <TripHub demo={demo} search={search} />
         )}
-        {route === "/" && (
+        {(route === "/" || route === "/demo") && (
           <>
             <section className="hero">
               <img
