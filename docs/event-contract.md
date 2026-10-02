@@ -36,7 +36,7 @@ Names and email entered into the booking form are never sent or persisted. Do no
 
 The website polls `https://ets-demo.eu1.pipes.meiro.io/profile-api/ets-demo?identifier_type=user_id&identifier_value=<SDK user_id>` and reads `attributes.ets_decision` (dimensions: run_id, revision, decision, reason, marketing) and `attributes.ets_message_eligibility` (dimensions: revision, eligible, reason) — the same dimensions as the DERTOUR `dtr_decision` / `dtr_message_eligibility`. A decision is rendered only when run_id and revision match the current local state.
 
-See [demo-runbook.md](demo-runbook.md). The Meiro object snapshot (`meiro/`) will be regenerated for ets-demo.
+See [demo-runbook.md](demo-runbook.md). Meiro object IDs: `meiro/manifest.json`. When the Demo Studio confirms a booking, the Etstur Web source transform adds an `order_submitted` event (user_id, browser, email, crm_customer_id of a synthetic pool customer) — the website itself never sends typed names or emails.
 
 ## Native Web Banner events
 

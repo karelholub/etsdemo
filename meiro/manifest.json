@@ -1,0 +1,144 @@
+{
+ "instance": "https://ets-demo.eu1.pipes.meiro.io",
+ "generated": "2026-10-02",
+ "webSource": {
+  "name": "Etstur Web",
+  "id": "83e10028-f775-427c-917d-ab1f65173d71",
+  "slug": "etstur-web",
+  "customEventTypes": {
+   "ets_demo_state": "0c2bb359-e7be-48c0-91b9-b3a444f1ca6f",
+   "ets_touchpoint": "521ac473-1b96-4ecc-b4f2-5d6e34d01963",
+   "order_submitted": "d0caec8e-7cbe-4f5f-a1f9-e0a334561698"
+  },
+  "transform": "web-sdk template + order_submitted identification on ets_demo_state action=purchase (backup of the template code kept in the kit)"
+ },
+ "identitySources": {
+  "CRM": {
+   "id": "729d1457-9204-4afe-b819-4701d841ad71",
+   "slug": "ets-demo-crm",
+   "eventTypes": {
+    "customer_upserted": "a7edf443-8de6-42dd-a2c3-5ee4507c23eb",
+    "consent_changed": "44b32f37-98a8-43db-9ad7-71d3f16a107e"
+   }
+  },
+  "Rezervasyon Sistemi": {
+   "id": "dff793a8-d28e-4d04-a668-203ec10491a9",
+   "slug": "ets-demo-rezervasyon-sistemi",
+   "eventTypes": {
+    "booking_confirmed": "dbcde009-7bc0-415b-b2d8-3859cbbba344",
+    "booking_cancelled": "c9ccae0d-5ed7-4b21-841a-bd4deed3e211"
+   }
+  },
+  "ETS Üyelik (CIAM)": {
+   "id": "b41cc133-5784-497b-a5fe-29c9b8870c7c",
+   "slug": "ets-demo-ets-uyelik-ciam",
+   "eventTypes": {
+    "account_created": "8bc2a23e-7d8b-4956-b851-998e18178a88",
+    "account_login": "097ed1bc-0ecb-4b31-9a31-bfd531879e81"
+   }
+  },
+  "Müşteri Hizmetleri": {
+   "id": "80c0f7e5-c03a-4427-b5ae-a3b9f395ea2f",
+   "slug": "ets-demo-musteri-hizmetleri",
+   "eventTypes": {
+    "case_opened": "41f6a97b-7832-4ba6-988d-919e939cff89",
+    "case_closed": "a42ea4aa-14bf-4691-973a-cb310e2019b6"
+   }
+  }
+ },
+ "identifierTypes": {
+  "crm_customer_id": "0530a50c-2375-416c-9980-7b2b88e4ef4f",
+  "ciam_id": "f65cf7f9-0278-4134-a316-820077cd241f"
+ },
+ "profileApiEndpoint": {
+  "id": "d566b7a4-43b2-4f74-8b31-1bf6796a165c",
+  "slug": "ets-demo",
+  "name": "Website decisions (demo)"
+ },
+ "catalog": {
+  "name": "Otel kataloğu",
+  "id": "3e114629-d726-45f3-a051-bc1742568d6c"
+ },
+ "attributes": {
+  "Native banner activity": "ets_native_banner_activity",
+  "Booking ledger": "ets_booking_ledger",
+  "Web funnel": "ets_web_funnel",
+  "Web sessions": "ets_web_sessions",
+  "Preferred agency": "ets_preferred_agency",
+  "Alternative hotels": "ets_alternative_hotels",
+  "Travel intent": "ets_travel_intent",
+  "Suppression status": "ets_suppression_status",
+  "Service cases": "ets_service_cases",
+  "Online research before offline booking": "ets_online_research_before_offline_booking",
+  "Identity map": "ets_identity_map",
+  "Bookings": "ets_bookings",
+  "Booking summary": "ets_booking_summary",
+  "CRM customer": "ets_crm_customer",
+  "Offer context": "ets_offer_context",
+  "Touchpoints": "ets_touchpoints",
+  "Demo run outcomes": "ets_run_outcomes",
+  "Trip details": "ets_trip_details",
+  "Message eligibility": "ets_message_eligibility",
+  "Lifecycle decision": "ets_decision"
+ },
+ "audiences": {
+  "Agency customers researching online": "626ca33f-bbd1-4464-b845-d2fa2fcffede",
+  "Package retargeting · eligible": "961e7d94-9e76-4ee9-927e-c54b93041902",
+  "Suppress · acquisition (booked / upcoming trip)": "15121e59-6af9-4887-ad79-d55d8a1b492d",
+  "Suppress · paid media": "e797cc57-7e8d-4c86-9bd5-2f9aebff9f1f",
+  "Suppress · CRM campaigns": "43ff0037-ccd9-4d00-82d3-8d494ce297a3",
+  "Known only from the travel agency": "4816a1e9-4734-4041-8704-8e878b4eb442",
+  "Cross-device customers (web + app)": "e285458b-7efb-4505-8b4e-d9eb94218ba0",
+  "Online research → offline booking": "e2dbc4eb-9b16-4aa1-bb12-e00f2fb5836c",
+  "Identified at web order": "03623018-0a57-45fd-9efe-89700c653043",
+  "Lifecycle · Win-back": "2f76696a-cc82-4e54-86a7-f85047c8a16a",
+  "Lifecycle · VIP": "e1512085-5dfa-4753-b747-6d76190b4870",
+  "Lifecycle · Service": "33d9b408-ae78-4529-bb22-e4b80d963249",
+  "Lifecycle · Research": "998bfbb2-ce8d-4b74-b9dc-097c8f485bbc",
+  "Lifecycle · Recovery": "0a4a908b-899c-4f48-a57d-e8834e4cc844",
+  "Lifecycle · Rebook": "4fa0f5b9-f586-4905-9607-8f24d907dcce",
+  "Lifecycle · Price watch": "6bbd2c8b-e0b7-482e-82a1-2c83c87fdb1b",
+  "Lifecycle · Pre-trip": "7d1e024e-f01f-4a99-8215-7e7871cbe528",
+  "Lifecycle · Feedback": "b100bc08-c01f-46ce-b051-c181e28ca1af",
+  "Lifecycle · Control group": "64538891-3938-4765-90c0-0a8bbee03c4a",
+  "Lifecycle · Care (open case)": "cdeb5238-0bc7-48e6-b4f1-83ba6b0e67f3",
+  "Lifecycle · Cancelled": "dd077d99-b890-4c84-9d73-43b419f22313",
+  "Lifecycle · Acquisition excluded": "ca77ed92-bd15-42f5-acd9-1d04028c0290"
+ },
+ "dashboards": {
+  "Web Analytics": "c22fdf3f-0fcf-4b52-b781-f280f47eeeff",
+  "Business KPIs": "2ab9c868-9201-4559-a1e7-695e8676a55d",
+  "Booking funnel (demo runs)": "81586aff-4220-4d87-b55a-53afbfadb7f2",
+  "Lifecycle & suppression (demo runs)": "76a0dd2e-a210-4b80-8676-07a7aaa8b1ca",
+  "Commercial value (illustrative)": "a948d904-0148-4299-aa7f-4a9ce287936f",
+  "Web Banners (demo interactions)": "ba5def09-4c8c-44c8-bb45-1e507ed4cb28"
+ },
+ "campaigns": {
+  "Retargeting 1 · Tatilin seni bekliyor": "b26e2ddf-372f-4cd7-a2f1-b1c16e18a6af",
+  "Retargeting 2 · SMS hatırlatma": "b59539a0-b102-4aef-b7a9-89e914905654",
+  "Retargeting 3 · Alternatif oteller": "0c16044a-ddef-4d23-84dc-a34d69818645",
+  "Fiyat alarmı · Fiyat düştü": "d31021a7-29c2-4deb-a53d-964511f8277d",
+  "Fiyat alarmı · SMS": "fb72a58f-3c97-4e36-8913-07259c99eeb8",
+  "Acente danışmanlığı · Online araştırdı": "c738cb3e-8d62-4cc9-b6af-f141687aeac3",
+  "Acente danışmanlığı · SMS geri arama": "30d57167-5fb7-49a1-bc6e-201dd35d0731"
+ },
+ "journeys": {
+  "Package retargeting · abandoned trip (cross-channel)": "a29b503c-9609-43f1-830c-0054fc2d792a",
+  "Price watch alert": "0fe6d07a-cb98-4336-9f63-f932c79d4587",
+  "Online research → travel agency follow-up": "865569aa-04cb-4624-bece-4189e7a2f982"
+ },
+ "webBanners": {
+  "inpage": "9b0cbda4-385f-4020-80b1-33986a5b6765",
+  "popup": "6540341a-5b29-4356-b9f2-c91474ad1ecb"
+ },
+ "pipe": {
+  "event_destination": "110f981b-6872-47b3-b1e4-82f06080a87a",
+  "pipe": "ca5ceb72-b42b-4657-8796-ece1e6d13d83"
+ },
+ "syntheticData": {
+  "customers": 300,
+  "crmIds": "ETS-C-100001…ETS-C-100300",
+  "emails": "@example.com",
+  "note": "fictional; generated by ~/ets-meiro/generate.py"
+ }
+}

@@ -1,5 +1,3 @@
-# Meiro configuration snapshot (ETS)
+# Meiro objects (ets-demo)
 
-Intentionally empty. The DERTOUR snapshot that lived here was removed during the ETS port.
-
-A new snapshot for the **ets-demo** instance (https://ets-demo.eu1.pipes.meiro.io) will be generated once the ETS objects exist: `manifest.json` (object IDs), attribute/segment/dashboard/journey/email/web-banner definitions and `validation.json` (bounded aggregate QA). Do not hand-write object IDs here.
+`manifest.json` lists the IDs of every object created for this demo on https://ets-demo.eu1.pipes.meiro.io — web source event types, identity sources, identifier types, Profile API endpoint, hotel catalogue, attributes, audiences, dashboards, email/SMS drafts, draft journeys, native web banners and the booking-system pipe. The build scripts live outside this repository (local Meiro kit); no API tokens are stored here.

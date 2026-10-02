@@ -24,7 +24,19 @@ Time advances only for this synthetic scenario. It never changes instance time o
 
 ## Meiro navigation
 
-Reporting dashboards, journeys and email drafts for ETS are not part of this repository yet. When they are created on ets-demo, use an **ETS |** namespace (e.g. “ETS | 01 Booking funnel • synthetic demo”), build them only on ETS attributes, keep journeys as unlaunched **PREVIEW ONLY** drafts, use Turkish email drafts, and record their IDs in `meiro/manifest.json`. Do not seed real recipients or perform send/schedule actions.
+All objects below are on ets-demo with plain names; IDs are in [`meiro/manifest.json`](../meiro/manifest.json).
+
+**Reporting** (Engage → Reporting):
+
+- **Web Analytics** — GA-style: sessions, users, page views, engagement/bounce, engagement time, conversion rate, revenue, sessions per day, default channel group (from UTM + referrer), device (viewport), new vs returning, sources, campaigns, landing pages, session funnel (search → hotel view → cart → checkout → booking) and destinations. Built on the row-per-session attributes **Web sessions** and **Web funnel**. Includes historical sessions already on the instance (no device info: shown as *Bilinmiyor*, excluded from the device chart).
+- **Business KPIs** — net booking revenue (TL), bookings, average booking value, cancellation rate, weekly trend, revenue by sales channel (Online / Acente / Çağrı merkezi), destination, top hotels, board and party mix, known customers, repeat customers, online-research-then-agency customers, average CLV, loyalty mix, known vs anonymous profiles and suppression counts. Built on **Booking ledger**, **Booking summary**, **Identity map** and related attributes.
+- **Booking funnel (demo runs)**, **Lifecycle & suppression (demo runs)**, **Commercial value (illustrative)**, **Web Banners (demo interactions)** — the DERTOUR lifecycle dashboards ported to ETS attributes.
+
+**Identity** — sources *CRM*, *Rezervasyon Sistemi*, *ETS Üyelik (CIAM)*, *Müşteri Hizmetleri* hold 300 fictional customers (`ETS-C-100001…`, `@example.com`, IYS/Efilli consent fields). When the Demo Studio confirms a booking, the Etstur Web transform adds an `order_submitted` event with the email + CRM number of a pool customer for the persona (researcher → agency-only customer, vip → Gold/Platinum, lapsed → lapsed), so the anonymous browser is stitched to the CRM/booking/CIAM profile; a Pipe (*Web siparişi → Rezervasyon Sistemi*) then writes the simulated booking confirmation into *Rezervasyon Sistemi*. Use a fresh private window per persona run. Profile attributes to show: *Identity map*, *Booking summary*, *Bookings*, *Online research before offline booking*, *Travel intent*, *Suppression status*.
+
+**Audiences** — `Lifecycle · …` (13 live decisions), *Identified at web order*, *Online research → offline booking*, *Cross-device customers (web + app)*, *Known only from the travel agency*, *Suppress · CRM campaigns / paid media / acquisition*, *Package retargeting · eligible*, *Agency customers researching online*.
+
+**Journeys & campaigns** (drafts, never launched): *Package retargeting · abandoned trip (cross-channel)*, *Price watch alert*, *Online research → travel agency follow-up*, with seven Turkish email/SMS drafts (*Retargeting 1–3*, *Fiyat alarmı*, *Acente danışmanlığı*). No email/SMS/WhatsApp/push transport is configured on ets-demo, so nothing can be sent; the instance's marketing footer still uses the placeholder unsubscribe URL.
 
 The website catalogue contains seven Bodrum reference hotels and five synthetic “(Demo)” hotels sharing website IDs (`agaya-bodrum`, `sarpedor-boutique-hotel`, …). Prices are TL reference totals; room, board, party, nights, travel type and explicit simulated price changes determine the current quote total. It is not a live inventory or price feed.
 
@@ -39,7 +51,7 @@ The website catalogue contains seven Bodrum reference hotels and five synthetic 
 
 ## Configuration and recovery
 
-`meiro/README.md` is a placeholder; the ETS object snapshot (manifest, definitions, validation) will be generated separately. To roll back website changes, revert the implementation commit. No deployment was run from this workspace.
+`meiro/manifest.json` records the ets-demo object IDs (generated 2026-10-02). To roll back website changes, revert the implementation commit. No deployment was run from this workspace.
 
 Local preview: `npm run dev -- --host 127.0.0.1 --port 5173`.
 Build: `npm run build`.

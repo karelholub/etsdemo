@@ -70,6 +70,6 @@ The ETS logo and the hotel, destination and theme photographs were copied from l
 
 Open `/demo` or **Meiro · Demo Studio** for the complete website/email-preview story. Live personalization requires analytics consent and a current Meiro Profile API response for the current run/revision; otherwise the presenter sees an explicitly labelled local rule preview and the public website stays generic.
 
-[Presentation runbook](docs/demo-runbook.md) · [Meiro snapshot placeholder](meiro/README.md)
+[Presentation runbook](docs/demo-runbook.md) · [Meiro object manifest](meiro/manifest.json)
 
 Includes the lifecycle modules (research, quote recovery, price watch, pre-trip transfer upsell, service/feedback/rebooking, VIP/win-back, care and cancellation suppression), synthetic personas (`researcher`, `vip`, `lapsed`) and clock, exact quote recovery, a trip hub, Turkish email previews and an explicitly illustrative ROI model. Real sends, ad exports, live inventory and predictive models are not enabled.
