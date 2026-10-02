@@ -2,32 +2,55 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNativeBanners, NativeBannerSlot } from "./demo/NativeBanners";
 import { useLifecycle } from "./demo/useLifecycle";
 import { Personalization, PriceWatch, TripHub, Presenter } from "./demo/Demo";
-import { newQuote, priceFor, offerKey } from "./demo/model";
-import { asset, destinations, hotels, collections, brands } from "./data";
+import { newQuote, priceFor, offerKey, nightsBetween } from "./demo/model";
+import { tl } from "./demo/content";
+import {
+  asset,
+  destinations,
+  destinationInfo,
+  hotels,
+  boards,
+  rooms,
+  travelTypes,
+  origins,
+  themes,
+  stories,
+  tripThemes,
+  scoreLabel,
+} from "./data";
 import {
   track,
   item,
+  commerce,
   readConsent,
   setConsent,
   startTracking,
 } from "./tracking";
-const euro = (n) =>
-  new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(n);
-const date = (s) =>
-  new Date(s + "T12:00:00").toLocaleDateString("de-DE", {
+
+const shortDate = (s) =>
+  new Date(s + "T12:00:00").toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  });
+const weekday = (s) =>
+  new Date(s + "T12:00:00").toLocaleDateString("tr-TR", { weekday: "long" });
+const longDate = (s) =>
+  new Date(s + "T12:00:00").toLocaleDateString("tr-TR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+const party = (adults, children) =>
+  `${adults} Yetişkin${children ? `, ${children} Çocuk` : ""} · 1 Oda`;
+const originalFor = (h, total) =>
+  h.discount ? Math.round(total / (1 - h.discount / 100) / 10) * 10 : null;
+
 function Icon({ name, size = 22, ...props }) {
   const paths = {
     pin: (
       <>
-        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+        <path d="M19 10c0 5.5-7 12-7 12s-7-6.5-7-12a7 7 0 1 1 14 0Z" />
         <circle cx="12" cy="10" r="2.5" />
       </>
     ),
@@ -36,57 +59,88 @@ function Icon({ name, size = 22, ...props }) {
     ),
     user: (
       <>
-        <circle cx="12" cy="7" r="4" />
-        <path d="M4 22v-3a8 8 0 0 1 16 0v3" />
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21v-1a8 8 0 0 1 16 0v1" />
       </>
     ),
     calendar: (
       <>
-        <rect x="3" y="5" width="18" height="17" rx="2" />
-        <path d="M7 2v6m10-6v6M3 11h18" />
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M8 3v4m8-4v4M3 10h18" />
       </>
     ),
-    plane: <path d="m22 2-7 20-4-9-9-4 20-7ZM11 13l11-11" />,
-    arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
-    chevron: <path d="m9 5 7 7-7 7" />,
-    check: <path d="m4 12 5 5L20 6" />,
-    close: <path d="m6 6 12 12M6 18 18 6" />,
-    mail: (
+    plane: (
+      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" />
+    ),
+    bus: (
       <>
-        <rect x="2" y="4" width="20" height="16" rx="2" />
-        <path d="m2 5 10 8L22 5" />
+        <rect x="4" y="3" width="16" height="15" rx="3" />
+        <path d="M4 11h16M8 18v3m8-3v3M8 14.5h.01M16 14.5h.01" />
       </>
     ),
-    menu: <path d="M3 5h18M3 12h18M3 19h18" />,
+    bed: (
+      <>
+        <path d="M3 18V6m0 8h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5" />
+        <circle cx="7" cy="11" r="2" />
+      </>
+    ),
+    villa: <path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6" />,
+    globe: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
+      </>
+    ),
+    arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+    chevron: <path d="m9 6 6 6-6 6" />,
+    down: <path d="m6 9 6 6 6-6" />,
+    check: <path d="m5 12 4.5 4.5L19 7" />,
+    close: <path d="m6 6 12 12M6 18 18 6" />,
+    phone: (
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z" />
+    ),
+    doc: (
+      <>
+        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z" />
+        <path d="M14 3v6h6M8 13h8M8 17h5" />
+      </>
+    ),
+    menu: <path d="M3 6h18M3 12h18M3 18h18" />,
     search: (
       <>
-        <circle cx="10" cy="10" r="7" />
-        <path d="m15 15 7 7" />
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
       </>
     ),
-    filter: (
+    filter: <path d="M3 5h18l-7 8v6l-4 2v-8Z" />,
+    moon: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />,
+    share: (
       <>
-        <path d="M3 6h18M3 12h18M3 18h18" />
-        <path d="M8 3v6m8 0v6M7 15v6" />
+        <path d="M12 3v13M7 8l5-5 5 5" />
+        <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+      </>
+    ),
+    camera: (
+      <>
+        <path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+        <circle cx="12" cy="13" r="3.5" />
       </>
     ),
     tag: (
       <>
-        <path d="M3 3h8l11 11-8 8L3 11Z" />
-        <circle cx="7" cy="7" r="1" />
+        <path d="M3 3h8l10 10-8 8L3 11Z" />
+        <circle cx="7.5" cy="7.5" r="1.2" />
       </>
     ),
-    back: <path d="M20 12H4m6-6-6 6 6 6" />,
-    sun: (
-      <>
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2" />
-      </>
+    shield: <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z" />,
+    back: <path d="M19 12H5m6-6-6 6 6 6" />,
+    thumb: (
+      <path d="M7 10v11H3V10Zm0 0 4-7a2 2 0 0 1 3 1.7V9h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18 21H7" />
     ),
-    edit: (
+    users: (
       <>
-        <path d="m4 15 12-12 5 5L9 20l-6 1Z" />
-        <path d="m14 5 5 5" />
+        <circle cx="9" cy="8" r="3.5" />
+        <path d="M2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M22 20a7 7 0 0 0-4-6.3" />
       </>
     ),
   };
@@ -97,16 +151,17 @@ function Icon({ name, size = 22, ...props }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       {...props}
     >
-      {paths[name] || paths.sun}
+      {paths[name] || paths.check}
     </svg>
   );
 }
+
 function Modal({ title, children, onClose, wide = false }) {
   const ref = useRef();
   useEffect(() => {
@@ -153,11 +208,7 @@ function Modal({ title, children, onClose, wide = false }) {
       >
         <div className="modal-head">
           <h2>{title}</h2>
-          <button
-            aria-label="Schließen"
-            className="icon-button"
-            onClick={onClose}
-          >
+          <button aria-label="Kapat" className="icon-button" onClick={onClose}>
             <Icon name="close" />
           </button>
         </div>
@@ -166,29 +217,42 @@ function Modal({ title, children, onClose, wide = false }) {
     </div>
   );
 }
+
+function ScoreBadge({ h, compact = false }) {
+  return (
+    <div className={"score " + (compact ? "compact" : "")}>
+      <span>
+        <strong>{scoreLabel(h.score)}</strong>
+        <small>{h.reviews.toLocaleString("tr-TR")} Değerlendirme</small>
+      </span>
+      <b>{h.score.toFixed(1)}</b>
+    </div>
+  );
+}
+
 export function App() {
   const demo = useLifecycle();
   const params = new URLSearchParams(
-    location.search || sessionStorage.getItem("dtr-trip") || "",
+    location.search || sessionStorage.getItem("ets-trip") || "",
   );
   const [route, setRoute] = useState(location.pathname),
     [destination, setDestination] = useState(
-      params.get("destination") || "Mallorca",
+      params.get("destination") || "Bodrum",
     ),
-    [departure, setDeparture] = useState(
-      params.get("departure") || "Alle Flughäfen",
-    ),
+    [departure, setDeparture] = useState(params.get("departure") || "İstanbul"),
     [start, setStart] = useState(params.get("start") || "2026-10-20"),
     [end, setEnd] = useState(params.get("end") || "2026-10-27"),
     [adults, setAdults] = useState(Number(params.get("adults")) || 2),
     [children, setChildren] = useState(Number(params.get("children")) || 0),
     [travelType, setTravelType] = useState(
-      params.get("travelType") || "Flug und Hotel",
+      travelTypes.includes(params.get("travelType"))
+        ? params.get("travelType")
+        : "Sadece Otel",
     );
   const [modal, setModal] = useState(null),
     [saved, setSaved] = useState(() => {
       try {
-        return JSON.parse(localStorage.getItem("dtr-saved") || "[]");
+        return JSON.parse(localStorage.getItem("ets-saved") || "[]");
       } catch {
         return [];
       }
@@ -196,24 +260,31 @@ export function App() {
     [consent, setConsentState] = useState(readConsent()),
     [cookieOpen, setCookieOpen] = useState(!readConsent()),
     [sort, setSort] = useState("recommended"),
-    [family, setFamily] = useState(false),
-    [budget, setBudget] = useState(2500),
-    [stars, setStars] = useState(false),
-    [board, setBoard] = useState(params.get("board") || "Halbpension"),
-    [room, setRoom] = useState(params.get("room") || "Doppelzimmer Standard"),
-    [tab, setTab] = useState("Angebot"),
+    [popular, setPopular] = useState([]),
+    [priceMin, setPriceMin] = useState(""),
+    [priceMax, setPriceMax] = useState(""),
+    [minScore, setMinScore] = useState(0),
+    [boardFilter, setBoardFilter] = useState([]),
+    [themeFilter, setThemeFilter] = useState([]),
+    [board, setBoard] = useState(params.get("board") || ""),
+    [room, setRoom] = useState(params.get("room") || "Standart Oda"),
     [notice, setNotice] = useState(""),
     [gallery, setGallery] = useState(0),
     [booking, setBooking] = useState(() => {
       try {
-        return JSON.parse(sessionStorage.getItem("dtr-booking") || "null");
+        return JSON.parse(sessionStorage.getItem("ets-booking") || "null");
       } catch {
         return null;
       }
     });
+  const hotel =
+    hotels.find(
+      (h) => route === "/otel/" + h.id || route === "/rezervasyon/" + h.id,
+    ) || hotels[0];
+  const selBoard = boards.includes(board) ? board : hotel.board;
   useEffect(() => {
     sessionStorage.setItem(
-      "dtr-trip",
+      "ets-trip",
       new URLSearchParams({
         destination,
         departure,
@@ -226,29 +297,8 @@ export function App() {
         room,
       }).toString(),
     );
-  }, [
-    destination,
-    departure,
-    start,
-    end,
-    adults,
-    children,
-    travelType,
-    board,
-    room,
-  ]);
-  const hotel = hotels.find((h) => route.includes(h.id)) || hotels[0];
-  const nights = Math.max(
-    1,
-    Math.round((new Date(end) - new Date(start)) / 86400000),
-  );
-  const referencePP =
-    hotel.price +
-    (board === "All Inclusive" ? 177 : board === "Halbpension Plus" ? 51 : 0) +
-    (room === "Doppelzimmer Superior" ? 30 : 0) -
-    (travelType === "Nur Hotel" ? 176 : 0);
-  const referenceTotal =
-    Math.round(referencePP * (adults + children * 0.65) * 100) / 100;
+  }, [destination, departure, start, end, adults, children, travelType, board, room]);
+  const nights = nightsBetween(start, end);
   const tripSelection = {
     destination,
     departure,
@@ -257,9 +307,10 @@ export function App() {
     adults,
     children,
     travelType,
-    board,
+    board: selBoard,
     room,
   };
+  const referenceTotal = priceFor(hotel, tripSelection);
   useNativeBanners(route);
   const watch = demo.state.watch;
   const total =
@@ -268,7 +319,16 @@ export function App() {
     new Date(watch.expires_at) > new Date(demo.state.clock)
       ? watch.current_price
       : referenceTotal;
-  const pp = total / (adults + children * 0.65);
+  const listPrice = (h) =>
+    priceFor(h, {
+      board: h.board,
+      room: "Standart Oda",
+      travelType,
+      adults,
+      children,
+      start,
+      end,
+    });
   function go(path) {
     history.pushState({}, "", path);
     setRoute(path.split("?")[0]);
@@ -286,26 +346,27 @@ export function App() {
   }, []);
   useEffect(() => {
     document.title =
-      (route.includes("/hotel/")
+      (route.startsWith("/otel/")
         ? hotel.name
-        : route === "/angebote"
-          ? "Urlaubsangebote"
-          : route === "/merkzettel"
-            ? "Dein Merkzettel"
-            : "Macht Urlaub") + " | DERTOUR Demo";
+        : route === "/oteller"
+          ? `${destination} Otelleri`
+          : route === "/favorilerim"
+            ? "Favorilerim"
+            : route === "/rezervasyonlarim"
+              ? "Rezervasyonlarım"
+              : "Tatil, ETS’den sorulur!") + " | ETS Demo";
     track("page_view", { page_path: route });
-    if (route.includes("/hotel/"))
-      track("view_item", {
-        currency: "EUR",
-        value: hotel.price,
-        items: [item(hotel)],
-      });
-    if (route === "/angebote")
+    if (route.startsWith("/otel/"))
+      track("view_item", commerce(hotel, listPrice(hotel)));
+    if (route === "/oteller")
       track("view_search_results", {
         search_term: destination,
+        destination,
+        item_category: "hotel",
+        otel_city: destination,
         items: hotels
           .filter((h) => h.destination === destination)
-          .map((h) => item(h)),
+          .map((h) => item(h, listPrice(h))),
       });
   }, [route, destination]);
   useEffect(() => {
@@ -320,32 +381,27 @@ export function App() {
     track("search", {
       search_term: dest,
       destination: dest,
-      departure_airport: departure,
+      item_category: "hotel",
+      otel_city: dest,
       start_date: start,
       end_date: end,
       adults,
       children,
       travel_type: travelType,
+      ...(travelType !== "Sadece Otel" ? { origin: departure } : {}),
     });
     go(
-      `/angebote?destination=${encodeURIComponent(dest)}&start=${start}&end=${end}&adults=${adults}&children=${children}`,
+      `/oteller?destination=${encodeURIComponent(dest)}&start=${start}&end=${end}&adults=${adults}&children=${children}`,
     );
   }
   function favourite(h) {
     const added = !saved.includes(h.id);
     const next = added ? [...saved, h.id] : saved.filter((s) => s !== h.id);
     setSaved(next);
-    localStorage.setItem("dtr-saved", JSON.stringify(next));
-    if (added)
-      track("add_to_wishlist", {
-        currency: "EUR",
-        value: h.price,
-        items: [item(h)],
-      });
+    localStorage.setItem("ets-saved", JSON.stringify(next));
+    if (added) track("add_to_wishlist", commerce(h, listPrice(h)));
     setNotice(
-      added
-        ? "Hotel auf deinem Merkzettel gespeichert"
-        : "Hotel vom Merkzettel entfernt",
+      added ? "Tesis Favorilerim’e eklendi" : "Tesis Favorilerim’den çıkarıldı",
     );
   }
   function chooseConsent(granted) {
@@ -355,1060 +411,1121 @@ export function App() {
     demo.act("analytics_consent");
     if (granted) track("page_view", { page_path: route });
   }
-  function openHotel(h) {
+  function openHotel(h, list = "Arama Sonuçları") {
     track("select_item", {
-      item_list_name: "Suchergebnisse",
-      items: [item(h)],
+      item_list_name: list,
+      item_category: "hotel",
+      otel_city: h.destination,
+      items: [item(h, listPrice(h))],
     });
-    setBoard("Halbpension");
-    setRoom("Doppelzimmer Standard");
-    go("/hotel/" + h.id);
+    setBoard(h.board);
+    setRoom("Standart Oda");
+    go("/otel/" + h.id);
   }
   function checkout() {
-    const quote = newQuote(
-      hotel,
-      {
-        destination,
-        departure,
-        start,
-        end,
-        adults,
-        children,
-        travelType,
-        board,
-        room,
-      },
-      demo.state,
-    );
+    const quote = newQuote(hotel, tripSelection, demo.state);
     quote.total = total;
     demo.act("checkout", { quote });
     track("begin_checkout", {
+      ...commerce(hotel, total),
       quote_id: quote.id,
       booking_session_id: quote.id,
       room,
-      board,
-      currency: "EUR",
-      value: total,
-      items: [item(hotel, total)],
+      board: selBoard,
       destination,
       start_date: start,
       end_date: end,
       adults,
       children,
+      travel_type: travelType,
     });
-    go("/buchung/" + hotel.id);
+    go("/rezervasyon/" + hotel.id);
   }
-  const results = hotels.filter(
-    (h) =>
-      h.destination === destination &&
-      (!family || h.family) &&
-      h.price <= budget &&
-      (!stars || h.stars >= 4),
-  );
-  if (sort === "price") results.sort((a, b) => a.price - b.price);
-  if (sort === "rating") results.sort((a, b) => b.rating - a.rating);
-  const SearchBox = ({ compact = false }) => (
-    <div className={"search-box " + (compact ? "compact" : "")}>
-      <div className="search-tabs">
-        {[
-          "Nur Hotel",
-          "Flug und Hotel",
-          "Rundreisen",
-          "% Deals",
-          "Bahn und Hotel",
-          "Mietwagen",
-          "Kreuzfahrten",
-          "Wohnmobil",
-          "Sportevents",
-        ].map((t) => (
-          <button
-            className={travelType === t ? "active" : ""}
-            key={t}
-            onClick={() => {
-              if (!["Nur Hotel", "Flug und Hotel"].includes(t)) {
-                setModal("roundtrip");
-              } else setTravelType(t);
-            }}
-          >
-            {t === "Flug und Hotel" && <Icon name="plane" size={18} />} {t}
-          </button>
-        ))}
-      </div>
-      <form
-        className="search-fields"
-        onSubmit={(e) => {
-          e.preventDefault();
-          search();
-        }}
+  function resetFilters() {
+    setPopular([]);
+    setPriceMin("");
+    setPriceMax("");
+    setMinScore(0);
+    setBoardFilter([]);
+    setThemeFilter([]);
+  }
+  const inDestination = hotels.filter((h) => h.destination === destination);
+  const results = inDestination.filter((h) => {
+    const p = listPrice(h);
+    return (
+      (!popular.includes("Ultra Her Şey Dahil") ||
+        h.board === "Ultra Her Şey Dahil") &&
+      (!popular.includes("9 ve üstü") || h.score >= 9) &&
+      (!popular.includes("Denize Sıfır") ||
+        h.themes.includes("Denize Sıfır")) &&
+      (!popular.includes("Çocuk Dostu") || h.family) &&
+      (!priceMin || p >= Number(priceMin)) &&
+      (!priceMax || p <= Number(priceMax)) &&
+      h.score >= minScore &&
+      (!boardFilter.length || boardFilter.includes(h.board)) &&
+      (!themeFilter.length || themeFilter.some((t) => h.themes.includes(t)))
+    );
+  });
+  if (sort === "price") results.sort((a, b) => listPrice(a) - listPrice(b));
+  if (sort === "price-desc")
+    results.sort((a, b) => listPrice(b) - listPrice(a));
+  if (sort === "rating") results.sort((a, b) => b.score - a.score);
+  const filterProps = {
+    inDestination,
+    popular,
+    setPopular,
+    priceMin,
+    setPriceMin,
+    priceMax,
+    setPriceMax,
+    minScore,
+    setMinScore,
+    boardFilter,
+    setBoardFilter,
+    themeFilter,
+    setThemeFilter,
+    destination,
+    search,
+    onChange: (name) => track("filter_results", { filter: name }),
+  };
+
+  const SearchFields = ({ variant = "hero" }) => (
+    <form
+      className={"search-fields " + variant}
+      onSubmit={(e) => {
+        e.preventDefault();
+        search();
+      }}
+    >
+      <button
+        className="search-field destination-field"
+        type="button"
+        onClick={() => setModal("destination")}
       >
+        <Icon name="pin" />
+        <span>
+          {variant === "hero" && <small>Nereye gitmek istersin?</small>}
+          <strong>
+            {route.startsWith("/otel/") && variant !== "hero"
+              ? hotel.name
+              : `${destination} Otelleri`}
+          </strong>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="search-field date-field"
+        onClick={() => setModal("dates")}
+        aria-label={`Tarihler: ${shortDate(start)} – ${shortDate(end)}, ${nights} gece`}
+      >
+        <span>
+          <small>Giriş Tarihi</small>
+          <strong>{shortDate(start)}</strong>
+          <em>{weekday(start)}</em>
+        </span>
+        <span>
+          <small>Çıkış Tarihi</small>
+          <strong>{shortDate(end)}</strong>
+          <em>{weekday(end)}</em>
+        </span>
+        <span className="nights">
+          <Icon name="moon" size={16} />
+          {nights}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="search-field party-field"
+        onClick={() => setModal("travellers")}
+      >
+        <span>
+          <small className="pill">
+            {adults + children} Kişi, 1 Oda
+          </small>
+          <strong>{party(adults, children)}</strong>
+        </span>
+      </button>
+      {travelType !== "Sadece Otel" && variant === "hero" && (
         <button
-          className="search-field"
           type="button"
-          onClick={() => setModal("destination")}
+          className="search-field origin-field"
+          onClick={() => setModal("origin")}
         >
-          <Icon name="pin" />
+          <Icon name={travelType === "Uçak + Otel" ? "plane" : "bus"} />
           <span>
-            <small>Reiseziel, Region oder Hotel</small>
-            <strong>{destination || "Wohin soll es gehen?"}</strong>
+            <small>Nereden?</small>
+            <strong>{departure}</strong>
           </span>
         </button>
-        {travelType !== "Nur Hotel" && (
+      )}
+      <button className="search-submit" type="submit" aria-label="Otel ara">
+        <Icon name="search" />
+        <span>Ara</span>
+      </button>
+    </form>
+  );
+
+  const HotelCard = ({ h }) => {
+    const p = listPrice(h),
+      orig = originalFor(h, p);
+    return (
+      <article className="hotel-card">
+        <div className="hotel-photo">
           <button
-            type="button"
-            className="search-field"
-            onClick={() => setModal("airport")}
+            className="photo-link"
+            aria-label={`${h.name} incele`}
+            onClick={() => openHotel(h)}
           >
-            <Icon name="plane" />
-            <span>
-              <small>Abflughafen</small>
-              <strong>{departure}</strong>
-            </span>
+            <img src={asset(h.image)} alt={`${h.name}`} loading="lazy" />
           </button>
-        )}
-        <button
-          type="button"
-          className="search-field date-field"
-          onClick={() => setModal("dates")}
-        >
-          <Icon name="calendar" />
-          <span>
-            <small>Reisezeitraum · {nights} Nächte</small>
-            <strong>
-              {date(start)} – {date(end)}
-            </strong>
-          </span>
-        </button>
-        <button
-          type="button"
-          className="search-field"
-          onClick={() => setModal("travellers")}
-        >
-          <Icon name="user" />
-          <span>
-            <small>Reisende</small>
-            <strong>
-              {adults} Erwachsene{children > 0 ? `, ${children} Kinder` : ""}
-            </strong>
-          </span>
-        </button>
-        <button className="primary search-submit" type="submit">
-          Reise finden <Icon name="arrow" size={20} />
-        </button>
-      </form>
-    </div>
-  );
-  const HotelCard = ({ h }) => (
-    <article className="hotel-card">
-      <div className="hotel-photo">
-        <button
-          className="photo-link"
-          aria-label={`${h.name} ansehen`}
-          onClick={() => openHotel(h)}
-        >
-          <img
-            src={asset(h.image)}
-            alt={`${h.name} – Hotelansicht`}
-            loading="lazy"
-          />
-        </button>
-        <button
-          className={"save-button " + (saved.includes(h.id) ? "saved" : "")}
-          aria-label={
-            saved.includes(h.id) ? `${h.name} entfernen` : `${h.name} merken`
-          }
-          onClick={() => favourite(h)}
-        >
-          <Icon name="heart" />
-        </button>
-        {h.family && <span className="photo-tag">Für Familien</span>}
-      </div>
-      <div className="hotel-info">
-        <small>
-          {h.country || "Spanien"} · {h.destination} · {h.town}
-        </small>
-        <button className="hotel-title" onClick={() => openHotel(h)}>
-          <h2>{h.name}</h2>
-        </button>
-        <div className="stars">{"◆".repeat(h.stars)}</div>
-        <div className="review">
-          <b>{h.rating}%</b>
-          <strong>Weiterempfehlung</strong>
-          <span>({h.reviews.toLocaleString("de-DE")} Bewertungen)</span>
+          <button
+            className={"save-button " + (saved.includes(h.id) ? "saved" : "")}
+            aria-label={
+              saved.includes(h.id)
+                ? `${h.name} favorilerden çıkar`
+                : `${h.name} favorilere ekle`
+            }
+            onClick={() => favourite(h)}
+          >
+            <Icon name="heart" size={18} />
+          </button>
+          {h.synthetic && <span className="photo-tag">Demo tesis</span>}
         </div>
-        <div className="amenities">
-          {h.amenities.map((a) => (
-            <span key={a}>
-              <Icon name="check" size={14} />
-              {a}
-            </span>
-          ))}
+        <div className="hotel-info">
+          <button className="hotel-title" onClick={() => openHotel(h)}>
+            <h2>{h.name}</h2>
+          </button>
+          <p className="location">
+            <Icon name="pin" size={15} />
+            {h.location}
+          </p>
+          <ul className="features">
+            {h.features.map((f) => (
+              <li key={f} className={/İptal/.test(f) ? "green" : ""}>
+                {/İptal/.test(f) && <Icon name="shield" size={15} />}
+                {f}
+              </li>
+            ))}
+          </ul>
+          <p className="member-chip">
+            <Icon name="tag" size={15} />
+            Üyelere özel sepette %8 ek indirim (demo)
+          </p>
         </div>
-      </div>
-      <div className="hotel-price">
-        <span>
-          {travelType === "Nur Hotel" ? "Eigene Anreise" : "Inklusive Flug"} ·{" "}
-          {nights} Nächte
-        </span>
-        <span>Doppelzimmer · Halbpension</span>
-        <small>Preis pro Person ab</small>
-        <strong>
-          {euro(h.price - (travelType === "Nur Hotel" ? 176 : 0))}
-        </strong>
-        <span>
-          Gesamt ab{" "}
-          {euro((h.price - (travelType === "Nur Hotel" ? 176 : 0)) * adults)}
-        </span>
-        <button className="primary" onClick={() => openHotel(h)}>
-          Hotel ansehen <Icon name="arrow" size={18} />
-        </button>
-      </div>
-    </article>
-  );
+        <div className="hotel-price">
+          <ScoreBadge h={h} />
+          <div className="price-box">
+            <span className="board">{h.board}</span>
+            <span className="nights-label">{nights} Gece</span>
+            {orig && <span className="discount">%{h.discount}</span>}
+            {orig && <s>{tl(orig)}</s>}
+            <strong>{tl(p)}</strong>
+            <small>
+              {party(adults, children)}
+              {travelType !== "Sadece Otel" ? ` · ${travelType}` : ""}
+            </small>
+            <button className="primary" onClick={() => openHotel(h)}>
+              Oteli İncele
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  const navItems = [
+    ["Otel", () => search()],
+    ["Tur", () => setModal("product")],
+    ["Kıbrıs", () => search("Kıbrıs")],
+    ["Mısır", () => setModal("product")],
+    ["Villa", () => setModal("product")],
+    ["Ulaşım", () => setModal("product")],
+    [
+      "Kampanyalar",
+      () => {
+        go("/");
+        setTimeout(
+          () =>
+            document
+              .getElementById("kampanyalar")
+              ?.scrollIntoView({ behavior: "smooth" }),
+          30,
+        );
+      },
+    ],
+    ["Son Yaz Fırsatları", () => search("Bodrum")],
+  ];
+
   return (
     <>
-      <header>
+      <header className="site-header">
         <div className="header-inner">
           <button
             className="logo-button"
-            aria-label="DERTOUR Startseite"
+            aria-label="ETS ana sayfa"
             onClick={() => go("/")}
           >
-            <img src={asset("9f6850839ecbff3f.svg")} alt="DERTOUR" />
+            <img src={asset("ets-logo.svg")} alt="etstur 35. yıl" />
           </button>
+          <nav aria-label="Ana menü" className="main-nav">
+            {navItems.map(([label, fn], i) => (
+              <button
+                key={label}
+                className={label === "Son Yaz Fırsatları" ? "hot" : ""}
+                onClick={fn}
+              >
+                {label}
+                {i < 6 && <Icon name="down" size={14} />}
+              </button>
+            ))}
+          </nav>
           <div className="header-right">
-            <div className="utility">
-              <button onClick={() => setModal("agency")}>
-                <Icon name="pin" size={18} />
-                <span>Reisebüro finden</span>
+            <div className="account-pill">
+              <button onClick={() => setModal("account")}>
+                <Icon name="user" size={17} />
+                <span>Hesabım</span>
               </button>
-              <button onClick={() => setModal("newsletter")}>
-                <Icon name="mail" size={18} />
-                <span>Newsletter</span>
+              <button onClick={() => go("/rezervasyonlarim")}>
+                <Icon name="doc" size={17} />
+                <span>Rezervasyonlarım</span>
               </button>
-              <button onClick={() => go("/merkzettel")}>
-                <Icon name="heart" size={18} />
+              <button onClick={() => go("/favorilerim")}>
+                <Icon name="heart" size={17} />
                 <span>
-                  Merkzettel{saved.length ? ` (${saved.length})` : ""}
+                  Favorilerim{saved.length ? ` (${saved.length})` : ""}
                 </span>
               </button>
-              <button onClick={() => go("/meine-reise")}>
-                <Icon name="user" size={18} />
-                <span>Mein DERTOUR</span>
+            </div>
+            <div className="utility">
+              <button onClick={() => setModal("help")}>
+                Yardım <Icon name="down" size={14} />
               </button>
-              <button
-                className="mobile-menu"
-                aria-label="Menü öffnen"
-                onClick={() => setModal("menu")}
-              >
-                <Icon name="menu" />
+              <button onClick={() => setModal("agency")}>Acenteler</button>
+              <button onClick={() => setModal("phone")}>
+                <Icon name="phone" size={16} />
+                444 0 387
               </button>
             </div>
-            <nav aria-label="Hauptnavigation">
-              {[
-                "Urlaub suchen",
-                "Aktuelles & Angebote",
-                "Reiseziele",
-                "Reisemagazin",
-                "Service",
-              ].map((label, i) => (
-                <button
-                  key={label}
-                  onClick={() => {
-                    if (i === 0) search();
-                    else if (i === 1) {
-                      go("/");
-                      setTimeout(
-                        () =>
-                          document
-                            .getElementById("inspiration")
-                            ?.scrollIntoView({ behavior: "smooth" }),
-                        30,
-                      );
-                    } else
-                      setModal(
-                        ["", "", "destination", "magazine", "service"][i],
-                      );
-                  }}
-                >
-                  {label}
-                  <span>⌄</span>
-                </button>
-              ))}
-            </nav>
           </div>
+          <button
+            className="mobile-menu"
+            aria-label="Menüyü aç"
+            onClick={() => setModal("menu")}
+          >
+            <Icon name="menu" />
+          </button>
         </div>
       </header>
-      <button className="promo" onClick={() => setModal("newsletter")}>
-        Jetzt anmelden & Gutschein für bis zu 500 € Sofortrabatt sichern!{" "}
-        <strong>
-          Mehr Infos hier <span>›</span>
-        </strong>
-      </button>
       <main>
-        {route === "/meine-reise" && <TripHub demo={demo} search={search} />}
+        {route === "/rezervasyonlarim" && (
+          <TripHub demo={demo} search={search} />
+        )}
         {route === "/" && (
           <>
-            <div className="hero">
+            <section className="hero">
               <img
                 className="hero-photo"
-                src={asset("13011aeacd070bdf.webp")}
-                alt="Macht Urlaub – entspannte Auszeit mit DERTOUR"
+                src={asset("hero-beach.webp")}
+                alt=""
               />
-              <img
-                className="hero-badge"
-                src={asset("c1655a7228639bd1.webp")}
-                alt="Bis zu 40 Prozent Frühbucher-Rabatt"
-              />
-              <div className="hero-copy">
-                <h1>MACHT URLAUB</h1>
-                <p>Bis zu 40 % sparen²</p>
-                <button onClick={() => search()} className="light-button">
-                  JETZT ENTDECKEN <Icon name="arrow" />
+              <span className="hero-chip">
+                Demo prototip · Resmi ETS hizmeti değildir
+              </span>
+              <div className="hero-inner">
+                <h1>Hayalindeki tatili ETS ile planla!</h1>
+                <div className="product-tabs" role="tablist">
+                  {[
+                    ["Otel", "bed", "Sadece Otel"],
+                    ["Tur", "globe", null],
+                    ["Uçak", "plane", "Uçak + Otel"],
+                    ["Villa", "villa", null],
+                    ["Otobüs", "bus", "Otobüs + Otel"],
+                  ].map(([label, icon, type]) => (
+                    <button
+                      key={label}
+                      role="tab"
+                      aria-selected={type === travelType}
+                      className={type === travelType ? "active" : ""}
+                      onClick={() =>
+                        type ? setTravelType(type) : setModal("product")
+                      }
+                    >
+                      <Icon name={icon} size={18} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="search-panel">
+                  <SearchFields />
+                  <div className="popular-searches">
+                    <span>Popüler Aramalar:</span>
+                    {[
+                      ["ETS Son Yaz Fırsatları", "Bodrum"],
+                      ["Kapadokya Otelleri", "Kapadokya"],
+                      ["Kıbrıs Otelleri", "Kıbrıs"],
+                      ["İstanbul’a Yakın Oteller", "Sapanca"],
+                    ].map(([t, d]) => (
+                      <button key={t} onClick={() => search(d)}>
+                        {t} <Icon name="arrow" size={15} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section className="container stories" id="kampanyalar">
+              <div className="story-row">
+                {stories.map(([title, img, dest, overlay]) => (
+                  <button
+                    key={title}
+                    className="story"
+                    onClick={() => {
+                      track("select_promotion", { promotion_name: title });
+                      search(dest);
+                    }}
+                  >
+                    <span className="ring">
+                      <img src={asset(img)} alt="" loading="lazy" />
+                      <b>{overlay}</b>
+                    </span>
+                    <span className="story-label">{title}</span>
+                  </button>
+                ))}
+                <button
+                  className="story-wide"
+                  onClick={() => {
+                    track("select_promotion", {
+                      promotion_name: "Son Dakika Tatil Fırsatları",
+                    });
+                    search("Fethiye");
+                  }}
+                >
+                  <span className="ring">
+                    <img
+                      src={asset("theme-balayi.webp")}
+                      alt=""
+                      loading="lazy"
+                    />
+                  </span>
+                  <span>
+                    <strong>Son Dakika Tatil Fırsatları</strong>
+                    <small>Sevilen rotalarda birçok otel seçeneği!</small>
+                    <em>
+                      Fırsatları Gör <Icon name="arrow" size={15} />
+                    </em>
+                  </span>
                 </button>
               </div>
-            </div>
-            <div className="container home-search">
-              <SearchBox />
-            </div>
-            <div className="mobile-hero-copy">
-              <h1>MACHT URLAUB</h1>
-              <p>Bis zu 40 % sparen²</p>
-              <button className="light-button" onClick={() => search()}>
-                JETZT ENTDECKEN <Icon name="arrow" />
+              <button className="primary center" onClick={() => search()}>
+                Tüm Kampanyaları Gör
               </button>
-            </div>
-            <div className="container assurances">
-              <span>
-                <Icon name="check" />
-                Flexibel buchen, sorgenfrei reisen
-              </span>
-              <span>
-                <Icon name="tag" />
-                Bestpreis-Garantie für deinen Urlaub
-              </span>
-              <span>
-                Ein Unternehmen der{" "}
-                <img src={asset("fb76ed410ea4ea97.svg")} alt="REWE Group" />
-              </span>
-            </div>
+            </section>
             <Personalization demo={demo} go={go} search={search} />
             <NativeBannerSlot />
-            <div className="container" id="inspiration">
-              {collections.map((c, i) => (
-                <section className="collection" key={c.title}>
-                  <div className="section-title">
-                    <h2>{c.title}</h2>
-                    <span className="slider-buttons">
-                      <button
-                        aria-label="Vorherige Angebote"
-                        onClick={(e) =>
-                          e.currentTarget
-                            .closest("section")
-                            .querySelector(".inspiration-grid")
-                            .scrollBy({ left: -300, behavior: "smooth" })
-                        }
-                      >
-                        ‹
-                      </button>
-                      <button
-                        aria-label="Weitere Angebote"
-                        onClick={(e) =>
-                          e.currentTarget
-                            .closest("section")
-                            .querySelector(".inspiration-grid")
-                            .scrollBy({ left: 300, behavior: "smooth" })
-                        }
-                      >
-                        ›
-                      </button>
-                    </span>
-                  </div>
-                  <div className="inspiration-grid">
-                    {c.cards.map(([title, subtitle, img, dest, badge]) => (
-                      <button
-                        className="inspiration-card"
-                        key={title}
-                        onClick={() => {
-                          track("select_promotion", { promotion_name: title });
-                          search(dest);
-                        }}
-                      >
-                        <img src={asset(img)} alt={title} loading="lazy" />
-                        <span
-                          className={"card-badge " + (i === 2 ? "yellow" : "")}
-                        >
-                          {badge}
-                        </span>
-                        <span className="card-caption">
-                          <span>
-                            <strong>{title}</strong>
-                            <small>{subtitle}</small>
-                          </span>
-                          <Icon name="arrow" />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ))}
-              <section className="collection safety">
-                <h2>Mit einem guten Gefühl in den Urlaub</h2>
-                <div className="two-grid">
-                  {[
-                    [
-                      "Sicher und entspannt verreisen",
-                      "Alles Wichtige für deine Reise",
-                      "e13d04e49b355de6.webp",
-                    ],
-                    [
-                      "Urlaub, der gut tut",
-                      "Zeit für dich und deine Erholung",
-                      "89c81c2f963fc79e.webp",
-                    ],
-                  ].map(([t, s, img]) => (
+            <section className="container promo-banner">
+              <div className="promo-copy">
+                <span className="eyebrow">ÜYELERE ÖZEL</span>
+                <h2>Bodrum’da sezon sonu keyfi</h2>
+                <p>
+                  Üye girişi yapan misafirlere seçili otellerde sepette %8 ek
+                  indirim. Demo kampanya; gerçek indirim uygulanmaz.
+                </p>
+                <button
+                  className="light"
+                  onClick={() => {
+                    track("select_promotion", {
+                      promotion_name: "Üyelere özel Bodrum",
+                    });
+                    search("Bodrum");
+                  }}
+                >
+                  Otelleri Gör <Icon name="arrow" size={16} />
+                </button>
+              </div>
+              <img src={asset("region-bodrum.webp")} alt="Bodrum koyu" />
+            </section>
+            <section className="container campaign-cards">
+              {[
+                ["ETS Son Yaz Fırsatları", "%50’ye varan indirimler", "Bodrum", "story-sea.webp"],
+                ["Üyelere Özel Avantajlar", "Sepette ek indirim fırsatı", "Antalya", "region-antalya.webp"],
+                ["Günün Fırsatı", "Kapadokya’da taş otel keyfi", "Kapadokya", "region-kapadokya.webp"],
+              ].map(([t, s, d, img]) => (
+                <article key={t}>
+                  <img src={asset(img)} alt="" loading="lazy" />
+                  <div>
+                    <strong>{t}</strong>
+                    <small>{s}</small>
                     <button
-                      key={t}
-                      className="horizontal-card"
-                      onClick={() => setModal("service")}
-                    >
-                      <img src={asset(img)} alt="" loading="lazy" />
-                      <span>
-                        <strong>{t}</strong>
-                        <small>{s}</small>
-                      </span>
-                      <Icon name="arrow" />
-                    </button>
-                  ))}
-                </div>
-              </section>
-              <section className="magazine">
-                <img
-                  src={asset("c2d3796f720f58ba.webp")}
-                  alt="Sonnenuntergang am tropischen Palmenstrand"
-                  loading="lazy"
-                />
-                <div>
-                  <span className="eyebrow">DAS DERTOUR REISEMAGAZIN</span>
-                  <h2>Die schönsten Ideen für deine nächste Reise</h2>
-                  <p>
-                    Neue Lieblingsorte, besondere Erlebnisse und ganz viel
-                    Vorfreude: Lass dich inspirieren und entdecke die Welt mit
-                    uns.
-                  </p>
-                  <button
-                    className="dark-button"
-                    onClick={() => setModal("magazine")}
-                  >
-                    Zum Reisemagazin <Icon name="arrow" />
-                  </button>
-                </div>
-              </section>
-              <section className="collection">
-                <h2>Unsere Hotelmarken – dein Urlaub</h2>
-                <div className="brand-grid">
-                  {brands.map(([name, img]) => (
-                    <button
-                      className="brand"
-                      key={name}
+                      className="primary small"
                       onClick={() => {
-                        setNotice(`${name}: Entdecke unsere Demo-Hotelauswahl`);
-                        search();
+                        track("select_promotion", { promotion_name: t });
+                        search(d);
                       }}
                     >
-                      <img src={asset(img)} alt={name} loading="lazy" />
-                      <strong>{name}</strong>
-                      <Icon name="arrow" />
+                      Rezervasyon Yap!
                     </button>
-                  ))}
-                </div>
-              </section>
-              <section className="collection">
-                <h2>Inspiration für deinen Urlaub</h2>
-                <div className="brand-grid">
-                  {[
-                    ["Facebook", "3a2759d5af807674.webp"],
-                    ["Instagram", "b1283be953eac528.webp"],
-                    ["TikTok", "cac5a0ed72f66e57.webp"],
-                    ["Pinterest", "6bad3954f67a8ae5.webp"],
-                    ["WhatsApp", "0ca4e5dd65774606.webp"],
-                    ["Reisepodcast", "176b35591e79e101.webp"],
-                  ].map(([name, img]) => (
+                  </div>
+                </article>
+              ))}
+            </section>
+            <section className="themes-band">
+              <div className="container">
+                <h2 className="section-title">Tatil Temaları</h2>
+                <div className="theme-grid">
+                  {tripThemes.map(([t, img, d]) => (
                     <button
-                      key={name}
-                      className="brand"
-                      onClick={() => setModal("magazine")}
+                      key={t}
+                      className="theme-card"
+                      onClick={() => {
+                        track("select_promotion", { promotion_name: t });
+                        search(d);
+                      }}
                     >
                       <img src={asset(img)} alt="" loading="lazy" />
-                      <strong>{name}</strong>
-                      <Icon name="arrow" />
+                      <span>{t}</span>
                     </button>
                   ))}
                 </div>
-              </section>
-              {[
-                [
-                  "Top-Städte in Europa",
-                  "Rom",
-                  "Paris",
-                  "Barcelona",
-                  "London",
-                  "Wien",
-                  "Lissabon",
-                ],
-                [
-                  "Hotels weltweit",
-                  "Hotels auf Mallorca",
-                  "Hotels in Griechenland",
-                  "Hotels in der Türkei",
-                  "Hotels in Ägypten",
-                  "Hotels auf den Malediven",
-                  "Hotels in Thailand",
-                ],
-                [
-                  "Urlaubsregionen in Deutschland",
-                  "Ostsee",
-                  "Nordsee",
-                  "Bayern",
-                  "Schwarzwald",
-                  "Harz",
-                  "Allgäu",
-                ],
-                [
-                  "Beliebte Reiseziele",
-                  "Mallorca",
-                  "Griechenland",
-                  "Türkei",
-                  "Ägypten",
-                  "Malediven",
-                  "Dominikanische Republik",
-                ],
-              ].map(([title, ...links]) => (
-                <section key={title} className="link-section">
-                  <h2>{title}</h2>
-                  <div className="brand-grid">
-                    {links.map((t) => (
+                <button className="primary center" onClick={() => search()}>
+                  Tüm Temaları Gör
+                </button>
+              </div>
+            </section>
+            <section className="container regions">
+              <h2 className="section-title">Popüler Bölgeler</h2>
+              <div className="region-tabs">
+                {destinations.map((d) => (
+                  <button key={d} onClick={() => search(d)}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <div className="region-grid">
+                {destinations.map((d) => (
+                  <button
+                    key={d}
+                    className="region-card"
+                    onClick={() => search(d)}
+                  >
+                    <img
+                      src={asset(destinationInfo[d].image)}
+                      alt={d}
+                      loading="lazy"
+                    />
+                    <span>
+                      <strong>{d}</strong>
+                      <small>
+                        {hotels.filter((h) => h.destination === d).length} Otel
+                      </small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button className="primary center" onClick={() => search()}>
+                Tüm Popüler Bölgeleri Gör
+              </button>
+            </section>
+            <section className="container about">
+              <h2>ETS ile tatil planlamak çok kolay</h2>
+              <p>
+                Bu sayfa, ETS’nin otel arama ve rezervasyon deneyimini temel
+                alan etkileşimli bir demo prototipidir. Bodrum’daki referans
+                tesisler gerçek ETS listelerinden alınmıştır; diğer bölgelerde
+                “(Demo)” etiketli kurgusal örnek oteller yer alır. Fiyatlar
+                örnek niteliğindedir, gerçek müsaitlik veya ödeme yoktur.
+              </p>
+            </section>
+          </>
+        )}
+        {(route === "/oteller" || route === "/favorilerim") && (
+          <>
+            {route === "/oteller" && (
+              <div className="search-band">
+                <div className="container">
+                  <SearchFields variant="band" />
+                </div>
+              </div>
+            )}
+            <div className="container results-page">
+              <nav className="breadcrumbs" aria-label="Sayfa yolu">
+                <button onClick={() => go("/")}>Etstur</button>
+                <Icon name="chevron" size={14} />
+                {route === "/favorilerim" ? (
+                  <span>Favorilerim</span>
+                ) : (
+                  <>
+                    <button onClick={() => search()}>Otel</button>
+                    <Icon name="chevron" size={14} />
+                    <button onClick={() => search()}>
+                      {destinationInfo[destination]?.province} Otelleri
+                    </button>
+                    <Icon name="chevron" size={14} />
+                    <span>{destination} Otelleri</span>
+                  </>
+                )}
+              </nav>
+              <div className="result-heading">
+                <h1>
+                  {route === "/favorilerim"
+                    ? "Favorilerim"
+                    : `${destination} Otelleri için toplam ${results.length} tesis bulduk!`}
+                </h1>
+                {route === "/oteller" && (
+                  <button
+                    className="text-link"
+                    onClick={() => setModal("pricing")}
+                  >
+                    Fiyat ve İndirimler / Fiyat Farkı İade Garantisi
+                  </button>
+                )}
+              </div>
+              <div
+                className={
+                  "results-layout " + (route === "/favorilerim" ? "single" : "")
+                }
+              >
+                {route === "/oteller" && (
+                  <aside className="filters">
+                    <div className="map-card">
+                      <img src={asset("map-strip.webp")} alt="" />
                       <button
-                        key={t}
-                        onClick={() =>
-                          search(
-                            destinations.find((d) => t.includes(d)) ||
-                              "Mallorca",
-                          )
-                        }
+                        className="outline"
+                        onClick={() => setModal("map")}
                       >
-                        {t}
-                        <Icon name="arrow" size={18} />
+                        <Icon name="pin" size={16} />
+                        Sonuçları Haritada Gör
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                    <FilterFields {...filterProps} />
+                    <button className="text-link" onClick={resetFilters}>
+                      Filtreleri temizle
+                    </button>
+                  </aside>
+                )}
+                <section className="results-list">
+                  {route === "/oteller" && (
+                    <>
+                      <div className="member-strip">
+                        <span className="member-icon">
+                          <Icon name="user" size={18} />
+                        </span>
+                        <p>
+                          Üye girişi yaparak üyelere özel indirimlerden
+                          yararlanabilirsiniz.
+                        </p>
+                        <button onClick={() => setModal("account")}>
+                          Giriş Yap
+                        </button>
+                      </div>
+                      <div className="list-tools">
+                        <p className="demo-note">
+                          Demo fiyatlar · {nights} gece ·{" "}
+                          {party(adults, children)} · Canlı müsaitlik yok
+                        </p>
+                        <button
+                          className="mobile-filter outline"
+                          onClick={() => setModal("filters")}
+                        >
+                          <Icon name="filter" size={16} />
+                          Filtrele
+                        </button>
+                        <label className="sort">
+                          <span>Sırala</span>
+                          <select
+                            value={sort}
+                            onChange={(e) => {
+                              setSort(e.target.value);
+                              track("filter_results", {
+                                sort: e.target.value,
+                              });
+                            }}
+                          >
+                            <option value="recommended">ETS Sıralaması</option>
+                            <option value="price">Fiyat (Artan)</option>
+                            <option value="price-desc">Fiyat (Azalan)</option>
+                            <option value="rating">Misafir Puanı</option>
+                          </select>
+                        </label>
+                      </div>
+                    </>
+                  )}
+                  {(route === "/favorilerim"
+                    ? hotels.filter((h) => saved.includes(h.id))
+                    : results
+                  ).map((h) => (
+                    <HotelCard key={h.id} h={h} />
+                  ))}
+                  {((route === "/favorilerim" && !saved.length) ||
+                    (route === "/oteller" && !results.length)) && (
+                    <div className="empty">
+                      <Icon name="heart" size={40} />
+                      <h2>
+                        {route === "/favorilerim"
+                          ? "Henüz favori tesisin yok"
+                          : "Uygun tesis bulunamadı"}
+                      </h2>
+                      <p>
+                        {route === "/favorilerim"
+                          ? "Beğendiğin otelleri kalp simgesiyle Favorilerim’e ekle."
+                          : "Filtrelerini değiştirerek diğer tesisleri keşfet."}
+                      </p>
+                      <button
+                        className="primary"
+                        onClick={() => {
+                          resetFilters();
+                          search();
+                        }}
+                      >
+                        Otelleri Keşfet
+                      </button>
+                    </div>
+                  )}
                 </section>
-              ))}
+              </div>
             </div>
           </>
         )}
-        {(route === "/angebote" || route === "/merkzettel") && (
-          <div className="container results-page">
-            <div className="breadcrumbs">
-              <button onClick={() => go("/")}>Startseite</button> ›{" "}
-              {route === "/merkzettel" ? "Merkzettel" : "Urlaub suchen"} ›{" "}
-              {destination}
+        {route.startsWith("/otel/") && (
+          <>
+            <div className="search-band">
+              <div className="container">
+                <SearchFields variant="band" />
+              </div>
             </div>
-            {route === "/angebote" && <SearchBox compact />}
-            <div className="results-layout">
-              {route === "/angebote" && (
-                <aside className="filters">
-                  <div
-                    className="map-preview"
-                    style={{
-                      backgroundImage: `url(${asset("e8891cc3edd54525.webp")})`,
-                    }}
-                  >
-                    <button
-                      className="light-button"
-                      onClick={() => setModal("map")}
-                    >
-                      <Icon name="pin" />
-                      Karte anzeigen
-                    </button>
-                  </div>
-                  <h2>Dein Urlaub, deine Wünsche</h2>
-                  <FilterFields
-                    family={family}
-                    setFamily={setFamily}
-                    stars={stars}
-                    setStars={setStars}
-                    budget={budget}
-                    setBudget={setBudget}
-                  />
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setFamily(false);
-                      setStars(false);
-                      setBudget(2500);
-                    }}
-                  >
-                    Filter zurücksetzen
+            <div className="container detail-page">
+              <div className="detail-top">
+                <nav className="breadcrumbs" aria-label="Sayfa yolu">
+                  <button onClick={() => go("/")}>Etstur</button>
+                  <Icon name="arrow" size={13} />
+                  <button onClick={() => search(hotel.destination)}>
+                    Otel
                   </button>
-                </aside>
-              )}
-              <section className="results-list">
-                <div className="result-heading">
-                  <div>
-                    <span className="eyebrow">DEIN NÄCHSTER URLAUB WARTET</span>
-                    <h1>
-                      {route === "/merkzettel"
-                        ? "Dein Merkzettel"
-                        : `${results.length} Angebote für ${destination}`}
-                    </h1>
-                  </div>
-                  <label className="sort">
-                    Sortieren nach
-                    <select
-                      value={sort}
-                      onChange={(e) => {
-                        setSort(e.target.value);
-                        track("filter_results", { sort: e.target.value });
-                      }}
-                    >
-                      <option value="recommended">Unsere Empfehlung</option>
-                      <option value="price">Preis aufsteigend</option>
-                      <option value="rating">Beste Bewertung</option>
-                    </select>
-                  </label>
-                </div>
-                {route === "/angebote" && (
-                  <>
-                    <p className="demo-note">
-                      Demo-Angebote · Beispielpreise und Hotelbilder · Keine
-                      Live-Verfügbarkeit
-                    </p>
-                    <button
-                      className="mobile-filter secondary"
-                      onClick={() => setModal("filters")}
-                    >
-                      <Icon name="filter" />
-                      Filtern & Sortieren
-                    </button>
-                  </>
+                  <Icon name="arrow" size={13} />
+                  <button onClick={() => search(hotel.destination)}>
+                    {hotel.destination} Otelleri
+                  </button>
+                </nav>
+                {hotel.synthetic && (
+                  <span className="license">Kurgusal demo tesis</span>
                 )}
-                {(route === "/merkzettel"
-                  ? hotels.filter((h) => saved.includes(h.id))
-                  : results
-                ).map((h) => (
-                  <HotelCard key={h.id} h={h} />
-                ))}
-                {((route === "/merkzettel" && !saved.length) ||
-                  (route === "/angebote" && !results.length)) && (
-                  <div className="empty">
-                    <Icon name="heart" size={40} />
-                    <h2>
-                      {route === "/merkzettel"
-                        ? "Hier beginnt deine Urlaubsvorfreude"
-                        : "Keine passenden Angebote"}
-                    </h2>
-                    <p>
-                      {route === "/merkzettel"
-                        ? "Speichere deine Lieblingshotels mit dem Herzsymbol."
-                        : "Passe deine Filter an und entdecke weitere Hotels."}
-                    </p>
-                    <button
-                      className="primary"
-                      onClick={() => {
-                        setFamily(false);
-                        setStars(false);
-                        setBudget(2500);
-                        search();
-                      }}
-                    >
-                      Hotels entdecken
-                    </button>
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
-        )}
-        {route.startsWith("/hotel/") && (
-          <div className="container detail-page">
-            <div className="breadcrumbs">
-              <button onClick={() => go("/")}>Startseite</button> ›{" "}
-              <button onClick={() => search()}>{hotel.destination}</button> ›{" "}
-              {hotel.name}
-            </div>
-            <button className="text-button back" onClick={() => search()}>
-              <Icon name="back" size={18} />
-              Zurück zur Hotelliste
-            </button>
-            <div className="detail-heading">
-              <div>
-                <small>
-                  {hotel.country || "Spanien"} · {hotel.destination} ·{" "}
-                  {hotel.town}
-                </small>
+              </div>
+              <div className="detail-heading">
                 <h1>
                   {hotel.name}{" "}
-                  <span className="stars">{"◆".repeat(hotel.stars)}</span>
+                  <span className="location">
+                    <Icon name="pin" size={16} />
+                    {hotel.location}
+                  </span>
                 </h1>
-                <div className="review">
-                  <b>{hotel.rating}%</b>
-                  <strong>Weiterempfehlung</strong>
-                  <span>{hotel.reviews} Bewertungen</span>
+                <div className="heading-actions">
+                  <button
+                    className={"soft " + (saved.includes(hotel.id) ? "saved" : "")}
+                    onClick={() => favourite(hotel)}
+                  >
+                    <Icon name="heart" size={17} />
+                    {saved.includes(hotel.id) ? "Beğenildi" : "Beğen"}
+                  </button>
+                  <button
+                    className="soft"
+                    onClick={() => setNotice("Paylaşım bu demoda simüle edilir")}
+                  >
+                    <Icon name="share" size={17} />
+                    Paylaş
+                  </button>
                 </div>
               </div>
-              <button
-                className={
-                  "secondary " + (saved.includes(hotel.id) ? "saved" : "")
-                }
-                onClick={() => favourite(hotel)}
-              >
-                <Icon name="heart" />
-                {saved.includes(hotel.id) ? "Gemerkt" : "Hotel merken"}
-              </button>
-            </div>
-            <div className="gallery">
-              <button
-                className="main-image"
-                onClick={() => {
-                  setGallery(0);
-                  setModal("gallery");
-                }}
-              >
-                <img src={asset(hotel.gallery[0])} alt={hotel.name} />
-              </button>
-              <div className="gallery-side">
-                {[1, 2].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => {
-                      setGallery(n % hotel.gallery.length);
-                      setModal("gallery");
-                    }}
-                  >
-                    <img
-                      src={asset(hotel.gallery[n % hotel.gallery.length])}
-                      alt={`${hotel.name} – Ansicht ${n + 1}`}
-                    />
-                  </button>
-                ))}
-              </div>
-              <button
-                className="gallery-count light-button"
-                onClick={() => setModal("gallery")}
-              >
-                Alle Bilder ansehen ({hotel.gallery.length})
-              </button>
-            </div>
-            <div className="detail-amenities">
-              {hotel.amenities.map((a) => (
-                <span key={a}>
-                  <Icon name="check" />
-                  {a}
-                </span>
-              ))}
-            </div>
-            <div className="detail-tabs">
-              {[
-                "Angebot",
-                "Lage",
-                "Hotelüberblick",
-                "Hotelbeschreibung",
-                "Bewertungen",
-              ].map((t) => (
+              <div className="gallery">
                 <button
-                  className={tab === t ? "active" : ""}
-                  key={t}
+                  className="main-image"
                   onClick={() => {
-                    setTab(t);
-                    document
-                      .getElementById("detail-content")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    setGallery(0);
+                    setModal("gallery");
                   }}
                 >
-                  {t}
+                  <img src={asset(hotel.gallery[0])} alt={hotel.name} />
                 </button>
-              ))}
-            </div>
-            <div className="detail-layout" id="detail-content">
-              <section>
-                {tab === "Angebot" ? (
-                  <>
-                    <h2>Dein Angebot individuell anpassen</h2>
-                    <div className="travel-toggle">
-                      {["Flug und Hotel", "Nur Hotel"].map((t) => (
+                <div className="gallery-side">
+                  {[1, 2].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        setGallery(n % hotel.gallery.length);
+                        setModal("gallery");
+                      }}
+                    >
+                      <img
+                        src={asset(hotel.gallery[n % hotel.gallery.length])}
+                        alt={`${hotel.name} – görsel ${n + 1}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="gallery-count"
+                  onClick={() => {
+                    setGallery(0);
+                    setModal("gallery");
+                  }}
+                >
+                  <Icon name="camera" size={18} />
+                  Galeri ({hotel.gallery.length})
+                </button>
+              </div>
+              <div className="detail-tabs">
+                <div>
+                  {[
+                    ["Genel Bakış", "genel-bakis"],
+                    ["Odalar", "odalar"],
+                    ["Yorumlar", "yorumlar"],
+                    ["Çevre ve Konum", "konum"],
+                    ["Tesis Bilgileri", "tesis-bilgileri"],
+                  ].map(([t, id]) => (
+                    <button
+                      key={t}
+                      onClick={() =>
+                        document
+                          .getElementById(id)
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="primary"
+                  onClick={() =>
+                    document
+                      .getElementById("odalar")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  Odaları Gör
+                </button>
+              </div>
+              <div className="overview" id="genel-bakis">
+                <article className="overview-text">
+                  <p>{hotel.description}</p>
+                  <div className="chips" id="tesis-bilgileri">
+                    {hotel.chips.map((c) => (
+                      <span key={c}>{c}</span>
+                    ))}
+                  </div>
+                  <button
+                    className="soft"
+                    onClick={() => setModal("facilities")}
+                  >
+                    Bu Tesisin Tüm Özelliklerini Gör
+                    <Icon name="chevron" size={16} />
+                  </button>
+                </article>
+                <aside className="overview-side">
+                  <div className="score-card" id="yorumlar">
+                    <b>{hotel.score.toFixed(1)}</b>
+                    <strong>{scoreLabel(hotel.score)}</strong>
+                    <span>
+                      {hotel.reviews.toLocaleString("tr-TR")} Değerlendirme
+                    </span>
+                    <p>
+                      Misafir puanı referans sayfadan alınmıştır. Bu demoda
+                      yorum içerikleri gösterilmez ve yeni yorum yayınlanmaz.
+                    </p>
+                  </div>
+                  <div className="location-card" id="konum">
+                    <img src={asset("map-strip.webp")} alt="Harita (temsili)" />
+                    <div>
+                      {(hotel.nearby || [[hotel.location, ""]]).map(
+                        ([place, km]) => (
+                          <p key={place}>
+                            <Icon name="pin" size={14} />
+                            {place} <b>{km}</b>
+                          </p>
+                        ),
+                      )}
+                      <button
+                        className="text-link"
+                        onClick={() => setModal("map")}
+                      >
+                        Tesisi Haritada Gör <Icon name="chevron" size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+              <div className="campaign-strip">
+                <h2>Kampanyalar</h2>
+                <div>
+                  <span>
+                    <Icon name="tag" size={16} />
+                    Üyelere özel sepette %8 ek indirim
+                  </span>
+                  {hotel.discount > 0 && (
+                    <span>
+                      <Icon name="tag" size={16} />%{hotel.discount}’e varan
+                      erken rezervasyon fırsatı
+                    </span>
+                  )}
+                  <span>
+                    <Icon name="shield" size={16} />
+                    İptal Güvencesi
+                  </span>
+                </div>
+              </div>
+              <section className="rooms-section" id="odalar">
+                <div className="rooms-head">
+                  <h2>Odalar</h2>
+                  <span className="room-score">
+                    <Icon name="thumb" size={16} />
+                    Tesisin Oda Puanı {Math.min(10, hotel.score - 0.4).toFixed(1)}
+                  </span>
+                </div>
+                <div className="room-search">
+                  <button onClick={() => setModal("dates")}>
+                    <Icon name="calendar" size={18} />
+                    <span>
+                      <small>Giriş Tarihi</small>
+                      {longDate(start)}
+                    </span>
+                  </button>
+                  <button onClick={() => setModal("dates")}>
+                    <Icon name="calendar" size={18} />
+                    <span>
+                      <small>Çıkış Tarihi</small>
+                      {longDate(end)}
+                    </span>
+                  </button>
+                  <button onClick={() => setModal("travellers")}>
+                    <Icon name="users" size={18} />
+                    <span>
+                      <small>{adults + children} Kişi | 1 Oda</small>
+                      {adults} Yetişkin, {children} Çocuk
+                    </span>
+                  </button>
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      setNotice(`${nights} gece için odalar güncellendi`);
+                      track("search", {
+                        search_term: hotel.name,
+                        destination: hotel.destination,
+                        item_category: "hotel",
+                        otel_city: hotel.destination,
+                        start_date: start,
+                        end_date: end,
+                        adults,
+                        children,
+                        travel_type: travelType,
+                        ...(travelType !== "Sadece Otel"
+                          ? { origin: departure }
+                          : {}),
+                      });
+                    }}
+                  >
+                    <Icon name="search" size={18} />
+                    Oda Ara
+                  </button>
+                </div>
+                <div className="rooms-layout">
+                  <div>
+                    <div className="travel-toggle" role="group" aria-label="Seyahat tipi">
+                      {travelTypes.map((t) => (
                         <button
-                          className={travelType === t ? "selected" : ""}
                           key={t}
+                          aria-pressed={travelType === t}
+                          className={travelType === t ? "selected" : ""}
                           onClick={() => setTravelType(t)}
                         >
-                          <Icon name={t === "Nur Hotel" ? "pin" : "plane"} />
-                          <strong>
-                            {t === "Nur Hotel" ? "Eigene Anreise" : "Mit Flug"}
-                          </strong>
-                          <span>
-                            Gesamt ab{" "}
-                            {euro(
-                              (hotel.price - (t === "Nur Hotel" ? 176 : 0)) *
-                                adults,
-                            )}
-                          </span>
+                          <Icon
+                            name={
+                              t === "Uçak + Otel"
+                                ? "plane"
+                                : t === "Otobüs + Otel"
+                                  ? "bus"
+                                  : "bed"
+                            }
+                            size={18}
+                          />
+                          {t}
                         </button>
                       ))}
                     </div>
-                    <div className="detail-options">
-                      <button onClick={() => setModal("dates")}>
-                        <Icon name="calendar" />
-                        <span>
-                          {date(start)} – {date(end)}
-                          <small>{nights} Nächte</small>
-                        </span>
-                        <Icon name="edit" size={16} />
-                      </button>
-                      <button onClick={() => setModal("travellers")}>
-                        <Icon name="user" />
-                        <span>
-                          {adults} Erwachsene
-                          {children ? `, ${children} Kinder` : ""}
-                          <small>1 Zimmer</small>
-                        </span>
-                        <Icon name="edit" size={16} />
-                      </button>
-                    </div>
+                    {travelType !== "Sadece Otel" && (
+                      <label className="origin-select">
+                        Kalkış noktası
+                        <select
+                          value={departure}
+                          onChange={(e) => setDeparture(e.target.value)}
+                        >
+                          {origins.map((o) => (
+                            <option key={o}>{o}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <PriceWatch
                       demo={demo}
                       hotel={hotel}
                       total={total}
                       trip={tripSelection}
                     />
-                    <h2>Wähle dein Zimmer</h2>
-                    {["Doppelzimmer Standard", "Doppelzimmer Superior"].map(
-                      (r) => (
+                    {rooms.map((r) => {
+                      const rBoard = room === r.name ? selBoard : hotel.board;
+                      const rPrice = priceFor(hotel, {
+                        ...tripSelection,
+                        room: r.name,
+                        board: rBoard,
+                      });
+                      return (
                         <div
                           className={
-                            "room " + (room === r ? "selected-room" : "")
+                            "room " + (room === r.name ? "selected-room" : "")
                           }
-                          key={r}
+                          key={r.name}
                         >
-                          <div>
-                            <h3>{r}</h3>
-                            <p>Balkon oder Terrasse · Klimaanlage · WLAN</p>
+                          <img src={asset(r.image)} alt="" loading="lazy" />
+                          <div className="room-info">
+                            <h3>{r.name}</h3>
+                            <p>
+                              {r.capacity} · {r.features.join(" · ")}
+                            </p>
                             <span className="green">
-                              <Icon name="check" size={16} /> Für deine Reise
-                              verfügbar (Demo)
+                              <Icon name="check" size={16} /> Seçtiğin tarihler
+                              için müsait (demo)
                             </span>
+                            {hotel.synthetic || hotel.id !== "agaya-bodrum" ? (
+                              <small className="muted">
+                                Oda görseli temsilidir.
+                              </small>
+                            ) : null}
                           </div>
-                          <label>
-                            Verpflegung
-                            <select
-                              value={room === r ? board : "Halbpension"}
-                              onChange={(e) => {
-                                setRoom(r);
-                                setBoard(e.target.value);
+                          <div className="room-buy">
+                            <label>
+                              Konaklama Tipi
+                              <select
+                                value={rBoard}
+                                onChange={(e) => {
+                                  setRoom(r.name);
+                                  setBoard(e.target.value);
+                                }}
+                              >
+                                {boards.map((b) => (
+                                  <option key={b} value={b}>
+                                    {b}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <strong className="room-price">{tl(rPrice)}</strong>
+                            <small>{nights} gece toplam</small>
+                            <button
+                              className={
+                                room === r.name ? "secondary" : "primary"
+                              }
+                              onClick={() => {
+                                setRoom(r.name);
+                                track("add_to_cart", {
+                                  ...commerce(hotel, rPrice),
+                                  room_type: r.name,
+                                  board_type: rBoard,
+                                });
                               }}
                             >
-                              <option value="Halbpension">Halbpension</option>
-                              <option value="Halbpension Plus">
-                                Halbpension Plus
-                              </option>
-                              <option value="All Inclusive">
-                                All Inclusive
-                              </option>
-                            </select>
-                          </label>
-                          <button
-                            className={room === r ? "secondary" : "primary"}
-                            onClick={() => {
-                              const selectedPrice =
-                                pp +
-                                (r === room
-                                  ? 0
-                                  : r === "Doppelzimmer Superior"
-                                    ? 30
-                                    : -30);
-                              setRoom(r);
-                              track("add_to_cart", {
-                                currency: "EUR",
-                                value: selectedPrice,
-                                items: [item(hotel, selectedPrice)],
-                                room_type: r,
-                                board_type: board,
-                              });
-                            }}
-                          >
-                            {/* Keep labels in stable elements: browser translation
-                                can replace bare text nodes outside React's control. */}
-                            <span hidden={room !== r}>
-                              <Icon name="check" size={18} />
-                            </span>
-                            <span>
-                              {room === r ? "Ausgewählt" : "Zimmer wählen"}
-                            </span>
-                          </button>
+                              {/* Keep labels in stable elements: browser translation
+                                  can replace bare text nodes outside React's control. */}
+                              <span hidden={room !== r.name}>
+                                <Icon name="check" size={18} />
+                              </span>
+                              <span>
+                                {room === r.name ? "Seçildi" : "Oda Seç"}
+                              </span>
+                            </button>
+                          </div>
                         </div>
-                      ),
-                    )}
-                    {travelType !== "Nur Hotel" && (
+                      );
+                    })}
+                    {travelType !== "Sadece Otel" && (
                       <div className="flight">
-                        <h2>Deine Flüge</h2>
-                        <div>
-                          <Icon name="plane" />
-                          <span>
-                            <strong>
-                              {departure === "Alle Flughäfen"
-                                ? "Stuttgart"
-                                : departure}{" "}
-                              →{" "}
-                              {hotel.destination === "Mallorca"
-                                ? "Palma de Mallorca"
-                                : hotel.town}
-                            </strong>
-                            <small>
-                              {date(start)} · 12:00 – 14:00 · Direktflug
-                            </small>
-                          </span>
-                        </div>
-                        <div>
-                          <Icon name="plane" />
-                          <span>
-                            <strong>
-                              {hotel.destination === "Mallorca"
-                                ? "Palma de Mallorca"
-                                : hotel.town}{" "}
-                              →{" "}
-                              {departure === "Alle Flughäfen"
-                                ? "Stuttgart"
-                                : departure}
-                            </strong>
-                            <small>
-                              {date(end)} · 21:25 – 23:25 · Direktflug
-                            </small>
-                          </span>
-                        </div>
-                        <small>Beispiel-Flugverbindung für diese Demo.</small>
+                        <h3>
+                          {travelType === "Uçak + Otel"
+                            ? "Uçuş bilgileri"
+                            : "Otobüs bilgileri"}{" "}
+                          (örnek)
+                        </h3>
+                        <p>
+                          <Icon
+                            name={travelType === "Uçak + Otel" ? "plane" : "bus"}
+                            size={18}
+                          />
+                          {departure} → {hotel.destination} ·{" "}
+                          {longDate(start)}
+                        </p>
+                        <p>
+                          <Icon
+                            name={travelType === "Uçak + Otel" ? "plane" : "bus"}
+                            size={18}
+                          />
+                          {hotel.destination} → {departure} · {longDate(end)}
+                        </p>
+                        <small>Ulaşım bu demoda örnek olarak gösterilir.</small>
                       </div>
                     )}
-                  </>
-                ) : tab === "Lage" ? (
-                  <>
-                    <h2>Dein Hotel am Urlaubsziel</h2>
-                    <img
-                      className="location-map"
-                      src={asset("e8891cc3edd54525.webp")}
-                      alt="Illustrative Kartenansicht"
-                    />
-                    <h3>
-                      {hotel.town}, {hotel.destination}
-                    </h3>
+                  </div>
+                  <aside className="booking-summary">
+                    <span className="eyebrow">REZERVASYON ÖZETİ</span>
+                    <h3>{hotel.name}</h3>
                     <p>
-                      Genieße die Nähe zum Meer und entdecke die schönsten
-                      Seiten der Insel. Die Karte dient der Illustration.
+                      {longDate(start)} – {longDate(end)}
+                      <br />
+                      {nights} Gece · {adults} Yetişkin
+                      {children ? ` · ${children} Çocuk` : ""}
+                      <br />
+                      {room}
+                      <br />
+                      {selBoard}
+                      <br />
+                      {travelType}
+                      {travelType !== "Sadece Otel" ? ` · ${departure}` : ""}
                     </p>
-                  </>
-                ) : tab === "Bewertungen" ? (
-                  <>
-                    <h2>Das sagen unsere Gäste</h2>
-                    <div className="review big">
-                      <b>{hotel.rating}%</b>
-                      <span>
-                        Weiterempfehlung bei {hotel.reviews} Bewertungen
-                      </span>
+                    <div className="price-line total">
+                      <span>Toplam</span>
+                      <strong>{tl(total)}</strong>
                     </div>
-                    <p>
-                      Bewertungskennzahlen der Referenzseite. In dieser Demo
-                      werden keine neuen Bewertungen veröffentlicht.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2>
-                      {tab === "Hotelüberblick"
-                        ? "Dein Urlaub auf einen Blick"
-                        : `Willkommen im ${hotel.name}`}
-                    </h2>
-                    <p>
-                      Ein entspannter Urlaub unter der Sonne: Freue dich auf
-                      erholsame Tage am Pool, mediterrane Küche und die Nähe zu
-                      traumhaften Buchten.
-                    </p>
-                    <div className="amenities">
-                      {hotel.amenities.map((a) => (
-                        <span key={a}>
-                          <Icon name="check" />
-                          {a}
-                        </span>
-                      ))}
-                    </div>
-                    <h3>Erholung und Erlebnisse</h3>
-                    <p>
-                      Ob du die Insel erkunden oder einfach die Seele baumeln
-                      lassen möchtest – hier beginnt deine Auszeit. Ausstattung
-                      und Beschreibungen sind für die Demo vereinfacht.
-                    </p>
-                  </>
-                )}
+                    <button className="primary full" onClick={checkout}>
+                      Rezervasyona Devam Et
+                    </button>
+                    <small className="demo-note">
+                      Demo teklif · Gerçek rezervasyon veya ödeme yok
+                    </small>
+                  </aside>
+                </div>
               </section>
-              <aside className="booking-summary">
-                <span className="eyebrow">DEIN URLAUB IM ÜBERBLICK</span>
-                <h2>Ihr Angebot</h2>
-                <h3>{hotel.name}</h3>
-                <p>
-                  {date(start)} – {date(end)}
-                  <br />
-                  {nights} Nächte · {adults} Erwachsene
-                  {children ? ` · ${children} Kinder` : ""}
-                  <br />
-                  {room}
-                  <br />
-                  {board}
-                  <br />
-                  {travelType === "Nur Hotel"
-                    ? "Eigene Anreise"
-                    : "Inklusive Flug"}
-                </p>
-                <hr />
-                <div className="price-line">
-                  <span>Preis pro Person</span>
-                  <b>{euro(pp)}</b>
-                </div>
-                <div className="price-line total">
-                  <strong>Reisepreis</strong>
-                  <strong>{euro(total)}</strong>
-                </div>
-                <button className="primary" onClick={checkout}>
-                  Angebot prüfen <Icon name="arrow" />
-                </button>
-                <small className="demo-note">
-                  Demo-Angebot · Keine echte Buchung
-                </small>
-              </aside>
             </div>
-          </div>
+          </>
         )}
-        {route.startsWith("/buchung/") && (
+        {route.startsWith("/rezervasyon/") && (
           <div className="container checkout-page">
             <button
-              className="text-button back"
-              onClick={() => go("/hotel/" + hotel.id)}
+              className="text-link back"
+              onClick={() => go("/otel/" + hotel.id)}
             >
-              <Icon name="back" />
-              Zurück zum Angebot
+              <Icon name="back" size={16} />
+              Odalara geri dön
             </button>
-            <div className="checkout-steps">
-              <b>1 Reise ausgewählt</b>
-              <b className="active">2 Angaben zur Reise</b>
-              <span>3 Bestätigung</span>
-            </div>
-            <h1>Dein Urlaub ist zum Greifen nah</h1>
+            <ol className="checkout-steps">
+              <li className="done">1 Oda Seçimi</li>
+              <li className="active">2 Misafir Bilgileri</li>
+              <li>3 Onay</li>
+            </ol>
+            <h1>Tatilin bir adım uzağında</h1>
             <p className="demo-banner">
-              Du bist in einer Demo. Es werden keine Reise gebucht und keine
-              Zahlung ausgelöst.
+              Bu bir demodur. Gerçek rezervasyon yapılmaz ve ödeme alınmaz.
             </p>
-            <div className="detail-layout">
+            <div className="checkout-layout">
               <form
                 className="checkout-form"
                 onFocus={() => {
-                  if (!window.__dtrFormStarted) {
-                    window.__dtrFormStarted = true;
+                  if (!window.__etsFormStarted) {
+                    window.__etsFormStarted = true;
                     track("form_start", { form_id: "demo_booking" });
                   }
                 }}
@@ -1423,12 +1540,12 @@ export function App() {
                       Math.abs(savedQuote.total - total) > 0.01)
                   ) {
                     setNotice(
-                      "Dein gespeichertes Angebot hat sich geändert oder ist abgelaufen. Bitte wähle deine Reise erneut.",
+                      "Kaydedilen teklifin değişti veya süresi doldu. Lütfen odanı yeniden seç.",
                     );
                     return;
                   }
                   const order = {
-                    id: "DTR-DEMO-" + Date.now().toString(36).toUpperCase(),
+                    id: "ETS-DEMO-" + Date.now().toString(36).toUpperCase(),
                     hotel: hotel.name,
                     hotel_id: hotel.id,
                     destination,
@@ -1441,58 +1558,57 @@ export function App() {
                     adults,
                     children,
                     room,
-                    board,
+                    board: selBoard,
                   };
                   demo.act("purchase", { booking: order, value: total });
                   track("form_submit", { form_id: "demo_booking" });
                   track("purchase", {
+                    ...commerce(hotel, total),
                     transaction_id: order.id,
                     order_id: order.id,
-                    currency: "EUR",
-                    value: total,
-                    items: [item(hotel, total)],
                     booking_type: "simulated",
                     quote_id: order.quote_id,
                     destination,
                     start_date: start,
                     end_date: end,
                     room,
-                    board,
+                    board: selBoard,
                     adults,
                     children,
+                    travel_type: travelType,
                   });
-                  sessionStorage.setItem("dtr-booking", JSON.stringify(order));
+                  sessionStorage.setItem("ets-booking", JSON.stringify(order));
                   setBooking(order);
-                  go("/bestaetigung");
+                  go("/onay");
                 }}
               >
-                <h2>Wer reist mit?</h2>
-                <p>
-                  Für den Demo-Ablauf reichen erfundene Angaben. Namen und
-                  E-Mail werden nicht gespeichert oder an Meiro gesendet.
+                <h2>Misafir bilgileri</h2>
+                <p className="muted">
+                  Demo için uydurma bilgiler yeterlidir. Ad ve e-posta
+                  kaydedilmez ve Meiro’ya gönderilmez.
                 </p>
                 <div className="two-grid">
                   <label>
-                    Vorname
+                    Ad
                     <input
                       name="first"
                       required
-                      placeholder="Max"
+                      placeholder="Ayşe"
                       autoComplete="off"
                     />
                   </label>
                   <label>
-                    Nachname
+                    Soyad
                     <input
                       name="last"
                       required
-                      placeholder="Mustermann"
+                      placeholder="Yılmaz"
                       autoComplete="off"
                     />
                   </label>
                 </div>
                 <label>
-                  E-Mail
+                  E-posta
                   <input
                     name="email"
                     type="email"
@@ -1501,90 +1617,102 @@ export function App() {
                     autoComplete="off"
                   />
                 </label>
-                <h2>Deine Reise</h2>
+                <h2>Konaklama</h2>
                 <p>
-                  {date(start)} – {date(end)} · {adults} Erwachsene · {nights}{" "}
-                  Nächte
+                  {longDate(start)} – {longDate(end)} · {adults} Yetişkin
+                  {children ? `, ${children} Çocuk` : ""} · {nights} Gece
                 </p>
                 <label className="checkbox">
                   <input type="checkbox" required />
-                  Ich möchte den Buchungsablauf unverbindlich simulieren.
+                  Rezervasyon akışını bağlayıcı olmadan simüle etmek istiyorum.
                 </label>
                 <button className="primary" type="submit">
-                  Demo-Buchung abschließen <Icon name="arrow" />
+                  Demo Rezervasyonu Tamamla
                 </button>
               </form>
               <aside className="booking-summary">
                 <img src={asset(hotel.image)} alt={hotel.name} />
-                <h2>{hotel.name}</h2>
+                <h3>{hotel.name}</h3>
                 <p>
                   {room}
                   <br />
-                  {board}
+                  {selBoard}
+                  <br />
+                  {travelType}
                 </p>
                 <div className="price-line total">
-                  <strong>Reisepreis</strong>
-                  <strong>{euro(total)}</strong>
+                  <span>Toplam</span>
+                  <strong>{tl(total)}</strong>
                 </div>
-                <small>Simulierter Preis · Keine Zahlung erforderlich</small>
+                <small className="demo-note">
+                  Simüle fiyat · Ödeme alınmaz
+                </small>
               </aside>
             </div>
           </div>
         )}
-        {route === "/bestaetigung" && (
+        {route === "/onay" && (
           <div className="container confirmation">
             <span className="success-circle">
               <Icon name="check" size={40} />
             </span>
-            <span className="eyebrow">VORFREUDE IST DIE SCHÖNSTE FREUDE</span>
+            <span className="eyebrow">İYİ TATİLLER</span>
             <h1>
               {booking
-                ? "Deine Demo-Reise ist bestätigt!"
-                : "Dein nächster Urlaub wartet"}
+                ? "Demo rezervasyonun onaylandı!"
+                : "Sıradaki tatilin seni bekliyor"}
             </h1>
             {booking ? (
               <>
                 <p>
-                  Der Buchungsablauf wurde erfolgreich simuliert.
+                  Rezervasyon akışı başarıyla simüle edildi.
                   <br />
-                  Es wurde keine echte Reise gebucht.
+                  Gerçek bir rezervasyon yapılmadı.
                 </p>
                 <div className="confirmation-card">
-                  <small>DEMO-BUCHUNGSNUMMER</small>
+                  <small>DEMO REZERVASYON NUMARASI</small>
                   <h3>{booking.id}</h3>
                   <h2>{booking.hotel}</h2>
                   <p>
-                    {date(booking.start)} – {date(booking.end)}
+                    {longDate(booking.start)} – {longDate(booking.end)}
                     <br />
-                    {booking.adults} Erwachsene · {booking.room}
+                    {booking.adults} Yetişkin · {booking.room}
                     <br />
                     {booking.board}
                   </p>
-                  <strong>{euro(booking.total)}</strong>
+                  <strong>{tl(booking.total)}</strong>
                 </div>
               </>
             ) : (
-              <p>Wähle zuerst dein Lieblingshotel aus.</p>
+              <p>Önce beğendiğin oteli seç.</p>
             )}
-            <button className="primary" onClick={() => go("/")}>
-              Weiter träumen <Icon name="arrow" />
-            </button>
+            <div className="confirmation-actions">
+              <button className="primary" onClick={() => go("/")}>
+                Ana Sayfaya Dön
+              </button>
+              <button
+                className="secondary"
+                onClick={() => go("/rezervasyonlarim")}
+              >
+                Rezervasyonlarım
+              </button>
+            </div>
           </div>
         )}
-        {!["/", "/angebote", "/merkzettel", "/bestaetigung"].includes(route) &&
-          !["/meine-reise", "/demo"].includes(route) &&
-          !route.startsWith("/hotel/") &&
-          !route.startsWith("/buchung/") && (
-            <div className="empty">
-              <h1>Hier geht’s zurück in den Urlaub</h1>
+        {!["/", "/oteller", "/favorilerim", "/onay"].includes(route) &&
+          !["/rezervasyonlarim", "/demo"].includes(route) &&
+          !route.startsWith("/otel/") &&
+          !route.startsWith("/rezervasyon/") && (
+            <div className="empty container">
+              <h1>Aradığın sayfa bulunamadı</h1>
               <button className="primary" onClick={() => go("/")}>
-                Zur Startseite
+                Ana Sayfaya Dön
               </button>
             </div>
           )}
       </main>
       <Presenter demo={demo} go={go} />
-      {route.startsWith("/hotel/") && (
+      {route.startsWith("/otel/") && (
         <button
           className="mobile-offer-bar"
           onClick={() =>
@@ -1594,57 +1722,62 @@ export function App() {
           }
         >
           <span>
-            <strong>Ihr Angebot</strong>
-            <small>Reisepreis {euro(total)}</small>
+            <small>{nights} Gece toplam</small>
+            <strong>{tl(total)}</strong>
           </span>
-          <Icon name="chevron" />
+          <span className="cta">Rezervasyon Özeti</span>
         </button>
       )}
       <footer>
-        <div className="container">
-          <div className="footer-top">
-            <img src={asset("9f6850839ecbff3f.svg")} alt="DERTOUR" />
-            <p>Dein Urlaub. Deine Welt.</p>
-            <button
-              className="secondary"
-              onClick={() => setModal("newsletter")}
-            >
-              <Icon name="mail" />
-              Newsletter abonnieren
+        <div className="footer-contact">
+          <div className="container">
+            <span>ETS demo prototipi</span>
+            <button onClick={() => setModal("phone")}>
+              <Icon name="phone" size={22} />
+              <span>
+                <strong>444 0 387</strong>
+                <small>Demo · arama yapılmaz</small>
+              </span>
             </button>
           </div>
-          <p className="footnote">
-            ² Beispielhafte Aktionskommunikation der DERTOUR Referenzseite.
-            Konditionen, Preise und Verfügbarkeiten in dieser Demo sind
-            unverbindlich. Die Hotelbilder dienen teilweise als illustrative
-            Beispiele.
-          </p>
-          <div className="footer-bottom">
-            <div>
-              {[
-                "Impressum",
-                "Datenschutz",
-                "Cookie-Einstellungen",
-                "Kontakt",
-              ].map((t) => (
+        </div>
+        <div className="container footer-columns">
+          {[
+            ["Otel Temaları", ["Balayı Otelleri", "Denize Sıfır Oteller", "Termal Oteller", "Doğa Otelleri"]],
+            ["Kampanyalar", ["ETS Son Yaz Fırsatları", "Erken Rezervasyon", "Üyelere Özel Fırsatlar"]],
+            ["Popüler Bölgeler", destinations.map((d) => `${d} Otelleri`)],
+            ["Kurumsal", ["Hakkımızda", "İletişim", "Gizlilik", "Çerez Ayarları"]],
+          ].map(([title, links]) => (
+            <div key={title}>
+              <h3>{title}</h3>
+              {links.map((t) => (
                 <button
                   key={t}
-                  onClick={() =>
-                    t === "Cookie-Einstellungen"
-                      ? setCookieOpen(true)
-                      : setModal(t === "Datenschutz" ? "privacy" : "legal")
-                  }
+                  onClick={() => {
+                    const d = destinations.find((x) => t.startsWith(x));
+                    if (t === "Çerez Ayarları") setCookieOpen(true);
+                    else if (t === "Gizlilik") setModal("privacy");
+                    else if (d) search(d);
+                    else if (title === "Kurumsal") setModal("legal");
+                    else search();
+                  }}
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <img src={asset("b36c3a0794e779a5.svg")} alt="DERTOUR Group" />
+          ))}
+        </div>
+        <div className="footer-bottom">
+          <div className="container">
+            <img src={asset("ets-logo.svg")} alt="etstur" />
+            <p>
+              Bu site ETS için hazırlanmış bağımsız bir demo prototipidir;
+              resmi bir ETS hizmeti değildir. Fiyatlar, kampanyalar ve
+              müsaitlik örnek niteliğindedir. Gerçek rezervasyon veya ödeme
+              yapılmaz.
+            </p>
           </div>
-          <p className="demo-footer">
-            DERTOUR Demo · Unabhängiger Prototyp für Demonstrationszwecke ·
-            Keine echten Buchungen
-          </p>
         </div>
       </footer>
       {notice && (
@@ -1659,37 +1792,36 @@ export function App() {
             className="cookie-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="Datenschutzeinstellungen"
+            aria-label="Çerez tercihleri"
           >
             <div>
-              <img src={asset("9f6850839ecbff3f.svg")} alt="DERTOUR" />
-              <h2>Dein Urlaub beginnt mit deiner Entscheidung</h2>
+              <img src={asset("ets-logo.svg")} alt="etstur" />
+              <h2>Çerez tercihlerin</h2>
               <p>
-                Wir verwenden notwendige lokale Speicherfunktionen für deinen
-                Merkzettel. Mit deiner Zustimmung analysiert Meiro die Nutzung
-                dieser Demo, zum Beispiel Suchanfragen, Hotelaufrufe und
-                simulierte Buchungen. Du kannst deine Entscheidung jederzeit in
-                den Cookie-Einstellungen ändern.
+                Favorilerim için gerekli yerel depolamayı kullanıyoruz. Onay
+                verirsen Meiro bu demonun kullanımını analiz eder; örneğin
+                aramalar, otel görüntülemeleri ve simüle rezervasyonlar.
+                Tercihini dilediğin zaman Çerez Ayarları’ndan değiştirebilirsin.
               </p>
               <button
-                className="text-button"
+                className="text-link"
                 onClick={() => {
                   setCookieOpen(false);
                   setModal("privacy");
                 }}
               >
-                Mehr zum Datenschutz
+                Gizlilik hakkında daha fazla bilgi
               </button>
             </div>
             <div className="cookie-actions">
               <button className="primary" onClick={() => chooseConsent(true)}>
-                Alle akzeptieren
+                Tümünü Kabul Et
               </button>
               <button
                 className="secondary"
                 onClick={() => chooseConsent(false)}
               >
-                Nur notwendige
+                Sadece Gerekli
               </button>
             </div>
           </section>
@@ -1699,23 +1831,24 @@ export function App() {
         <Modal
           title={
             {
-              destination: "Wohin soll es gehen?",
-              airport: "Von wo möchtest du fliegen?",
-              dates: "Wann möchtest du verreisen?",
-              travellers: "Wer reist mit?",
-              filters: "Deine Urlaubswünsche",
-              newsletter: "Urlaubspost für dich",
+              destination: "Nereye gitmek istersin?",
+              origin: "Nereden yola çıkacaksın?",
+              dates: "Tarih seç",
+              travellers: "Kişi ve oda seçimi",
+              filters: "Filtrele",
               gallery: hotel.name,
-              account: "Mein DERTOUR",
-              agency: "Dein Reisebüro",
-              map: "Dein Urlaubsziel",
-              privacy: "Datenschutz in dieser Demo",
-              legal: "Über diese Demo",
-              service: "Gut vorbereitet in den Urlaub",
-              magazine: "Entdecke die Welt",
-              menu: "Dein Urlaub mit DERTOUR",
-              roundtrip: "Rundreisen entdecken",
-            }[modal] || "DERTOUR"
+              account: "Hesabım",
+              agency: "Acenteler",
+              help: "Yardım",
+              phone: "444 0 387",
+              map: "Harita",
+              privacy: "Bu demoda gizlilik",
+              legal: "Bu demo hakkında",
+              product: "Yakında",
+              pricing: "Fiyat ve İndirimler",
+              facilities: "Tesis özellikleri",
+              menu: "Menü",
+            }[modal] || "ETS"
           }
           onClose={() => setModal(null)}
           wide={["dates", "gallery", "map"].includes(modal)}
@@ -1726,7 +1859,7 @@ export function App() {
                 <Icon name="search" />
                 <input
                   autoFocus
-                  placeholder="Land, Region oder Hotel suchen"
+                  placeholder="Bölge veya otel ara"
                   defaultValue=""
                   onChange={(e) => {
                     document
@@ -1734,14 +1867,16 @@ export function App() {
                       .forEach(
                         (el) =>
                           (el.hidden = !el.textContent
-                            .toLowerCase()
-                            .includes(e.target.value.toLowerCase())),
+                            .toLocaleLowerCase("tr-TR")
+                            .includes(
+                              e.target.value.toLocaleLowerCase("tr-TR"),
+                            )),
                       );
                   }}
                 />
               </label>
-              <p className="muted">Beliebte Reiseziele</p>
-              {destinations.map((d, i) => (
+              <p className="muted">Popüler bölgeler</p>
+              {destinations.map((d) => (
                 <button
                   className="destination-option"
                   key={d}
@@ -1753,29 +1888,20 @@ export function App() {
                   <Icon name="pin" />
                   <span>
                     <strong>{d}</strong>
-                    <small>{i === 0 ? "Region" : "Land"}</small>
+                    <small>{destinationInfo[d].province}</small>
                   </span>
                   <Icon name="chevron" size={18} />
                 </button>
               ))}
               <p className="demo-note">
-                Für jedes Reiseziel stehen exemplarische Demo-Angebote bereit.
+                Bodrum’da referans oteller, diğer bölgelerde birer demo tesis
+                bulunur.
               </p>
             </>
           )}
-          {modal === "airport" && (
+          {modal === "origin" && (
             <div className="option-list">
-              {[
-                "Alle Flughäfen",
-                "Frankfurt",
-                "München",
-                "Düsseldorf",
-                "Stuttgart",
-                "Berlin",
-                "Hamburg",
-                "Wien",
-                "Zürich",
-              ].map((a) => (
+              {origins.map((a) => (
                 <button
                   key={a}
                   onClick={() => {
@@ -1783,7 +1909,7 @@ export function App() {
                     setModal(null);
                   }}
                 >
-                  <Icon name="plane" />
+                  <Icon name={travelType === "Otobüs + Otel" ? "bus" : "plane"} />
                   {a}
                   {departure === a && <Icon name="check" />}
                 </button>
@@ -1794,7 +1920,7 @@ export function App() {
             <>
               <div className="two-grid date-inputs">
                 <label>
-                  Früheste Hinreise
+                  Giriş Tarihi
                   <input
                     type="date"
                     value={start}
@@ -1810,7 +1936,7 @@ export function App() {
                   />
                 </label>
                 <label>
-                  Rückreise
+                  Çıkış Tarihi
                   <input
                     type="date"
                     min={start}
@@ -1828,7 +1954,7 @@ export function App() {
                     start={start}
                     end={end}
                     onSelect={(value) => {
-                      if (value <= start || start === end) {
+                      if (value <= start || start !== end) {
                         setStart(value);
                         setEnd(value);
                       } else setEnd(value);
@@ -1836,9 +1962,9 @@ export function App() {
                   />
                 ))}
               </div>
-              <h3>Wie lange möchtest du verreisen?</h3>
+              <h3>Kaç gece kalmak istersin?</h3>
               <div className="duration-options">
-                {[7, 14, 21].map((n) => (
+                {[3, 5, 7, 10, 14].map((n) => (
                   <button
                     className={nights === n ? "selected" : ""}
                     key={n}
@@ -1848,7 +1974,7 @@ export function App() {
                       setEnd(d.toISOString().slice(0, 10));
                     }}
                   >
-                    {n / 7} {n === 7 ? "Woche" : "Wochen"}
+                    {n} Gece
                   </button>
                 ))}
               </div>
@@ -1856,54 +1982,48 @@ export function App() {
                 className="primary full"
                 onClick={() => {
                   if (!start || !end || end <= start) {
-                    setNotice("Bitte wähle eine Rückreise nach der Hinreise.");
+                    setNotice("Lütfen giriş tarihinden sonra bir çıkış tarihi seç.");
                     return;
                   }
                   setModal(null);
                 }}
               >
-                Reisezeitraum übernehmen
+                Tarihleri Uygula
               </button>
             </>
           )}
           {modal === "travellers" && (
             <>
               <Counter
-                label="Erwachsene"
-                subtitle="Ab 18 Jahren"
+                label="Yetişkin"
+                subtitle="12 yaş ve üzeri"
                 value={adults}
                 set={setAdults}
                 min={1}
                 max={6}
               />
               <Counter
-                label="Kinder"
-                subtitle="Bis 17 Jahre"
+                label="Çocuk"
+                subtitle="0–11 yaş"
                 value={children}
                 set={setChildren}
                 min={0}
                 max={4}
               />
               <p className="muted">
-                Die Preise für Kinder werden in dieser Demo pauschal berechnet.
+                Bu demoda çocuklar yetişkin fiyatının %50’si ile hesaplanır. 1
+                oda seçilidir.
               </p>
               <button className="primary full" onClick={() => setModal(null)}>
-                Übernehmen
+                Uygula
               </button>
             </>
           )}
           {modal === "filters" && (
             <>
-              <FilterFields
-                family={family}
-                setFamily={setFamily}
-                stars={stars}
-                setStars={setStars}
-                budget={budget}
-                setBudget={setBudget}
-              />
+              <FilterFields {...filterProps} />
               <button className="primary full" onClick={() => setModal(null)}>
-                {results.length} Angebote anzeigen
+                {results.length} tesisi göster
               </button>
             </>
           )}
@@ -1911,11 +2031,11 @@ export function App() {
             <div className="lightbox">
               <img
                 src={asset(hotel.gallery[gallery % hotel.gallery.length])}
-                alt={`${hotel.name}, Ansicht ${gallery + 1}`}
+                alt={`${hotel.name}, görsel ${gallery + 1}`}
               />
               <div>
                 <button
-                  aria-label="Vorheriges Bild"
+                  aria-label="Önceki görsel"
                   className="secondary"
                   onClick={() =>
                     setGallery(
@@ -1927,10 +2047,11 @@ export function App() {
                   ‹
                 </button>
                 <span>
-                  {gallery + 1} / {hotel.gallery.length}
+                  {(gallery % hotel.gallery.length) + 1} /{" "}
+                  {hotel.gallery.length}
                 </span>
                 <button
-                  aria-label="Nächstes Bild"
+                  aria-label="Sonraki görsel"
                   className="secondary"
                   onClick={() =>
                     setGallery((gallery + 1) % hotel.gallery.length)
@@ -1939,57 +2060,33 @@ export function App() {
                   ›
                 </button>
               </div>
+              {hotel.synthetic && (
+                <p className="muted">
+                  Görsel bölgeyi temsil eder; kurgusal demo tesise ait değildir.
+                </p>
+              )}
             </div>
-          )}
-          {modal === "newsletter" && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                track("sign_up", { method: "newsletter_demo" });
-                setModal(null);
-                setNotice("Danke! Deine Newsletter-Anmeldung wurde simuliert.");
-              }}
-            >
-              <p>
-                Urlaubsideen, Reiseinspiration und besondere Angebote. Probiere
-                die Anmeldung mit einer erfundenen E-Mail aus.
-              </p>
-              <label>
-                E-Mail-Adresse
-                <input type="email" required placeholder="demo@example.com" />
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" required />
-                Ich möchte die Newsletter-Anmeldung simulieren. Es wird keine
-                E-Mail versendet.
-              </label>
-              <button className="primary full">Jetzt anmelden</button>
-            </form>
           )}
           {modal === "map" && (
             <>
               <img
                 className="location-map"
-                src={asset("e8891cc3edd54525.webp")}
-                alt="Illustrative Karte"
+                src={asset("map-strip.webp")}
+                alt="Temsili harita"
               />
-              <p>
-                Die Karte illustriert Mallorca; weitere Reiseziele bieten
-                synthetische Beispielhotels. Wähle ein Hotel, um das Angebot
-                anzusehen.
-              </p>
+              <p>Harita temsilidir. İncelemek için bir tesis seç.</p>
               {hotels.map((h) => (
                 <button
                   className="destination-option"
                   key={h.id}
-                  onClick={() => openHotel(h)}
+                  onClick={() => openHotel(h, "Harita")}
                 >
                   <Icon name="pin" />
                   <span>
                     {h.name}
-                    <small>{h.town}</small>
+                    <small>{h.location}</small>
                   </span>
-                  <strong>{euro(h.price)}</strong>
+                  <strong>{tl(listPrice(h))}</strong>
                 </button>
               ))}
             </>
@@ -1997,24 +2094,24 @@ export function App() {
           {modal === "privacy" && (
             <>
               <p>
-                Dieser Prototyp speichert den Merkzettel und deine
-                Cookie-Entscheidung lokal in deinem Browser. Nur nach Zustimmung
-                wird das Meiro Web SDK geladen und sendet Nutzungsereignisse an
-                die separate Quelle „DERTOUR Demo Web“ der Travel-Demoinstanz.
+                Bu prototip Favorilerim listesini ve çerez tercihini yerel
+                olarak tarayıcında saklar. Meiro Web SDK yalnızca onay
+                verdiğinde yüklenir ve kullanım olaylarını ets-demo
+                instance’ındaki “Etstur Web” kaynağına gönderir.
               </p>
               <p>
-                Die Ereignisse enthalten die besuchten Seiten, Reiseauswahl,
-                Hotel-IDs und simulierte Bestellwerte. Eingaben zu Namen und
-                E-Mail im Demo-Checkout werden weder gespeichert noch in
-                Tracking-Ereignisse übernommen. Meiro kann technische Browser-
-                und Sitzungskennungen verarbeiten.
+                Olaylar ziyaret edilen sayfaları, tatil seçimlerini, otel
+                kimliklerini ve simüle rezervasyon tutarlarını içerir. Demo
+                rezervasyon formundaki ad ve e-posta bilgileri saklanmaz ve
+                olaylara eklenmez. Meiro teknik tarayıcı ve oturum
+                tanımlayıcılarını işleyebilir.
               </p>
               <p>
-                Aktuelle Entscheidung:{" "}
+                Güncel tercih:{" "}
                 <strong>
                   {consent === "granted"
-                    ? "Analyse erlaubt"
-                    : "Nur notwendige Funktionen"}
+                    ? "Analiz izni verildi"
+                    : "Sadece gerekli işlevler"}
                 </strong>
               </p>
               <button
@@ -2024,80 +2121,78 @@ export function App() {
                   setCookieOpen(true);
                 }}
               >
-                Cookie-Einstellungen ändern
+                Çerez Ayarları
               </button>
             </>
           )}
-          {["legal", "account", "agency", "service", "roundtrip"].includes(
-            modal,
-          ) && (
+          {modal === "facilities" && (
+            <div className="chips">
+              {[...new Set([...hotel.chips, ...hotel.features, ...hotel.themes])].map(
+                (c) => (
+                  <span key={c}>{c}</span>
+                ),
+              )}
+            </div>
+          )}
+          {[
+            "legal",
+            "account",
+            "agency",
+            "help",
+            "phone",
+            "product",
+            "pricing",
+          ].includes(modal) && (
             <>
               <p>
-                {modal === "account"
-                  ? "Deine Lieblingshotels findest du jederzeit auf deinem Merkzettel. Ein echtes Kundenkonto ist für diese Demo nicht erforderlich."
-                  : modal === "agency"
-                    ? "Eine persönliche Beratung gehört zum DERTOUR Urlaubserlebnis. In diesem Prototyp kannst du die Reise selbst entdecken; es werden keine Beratungsanfragen versendet."
-                    : modal === "roundtrip"
-                      ? "Entdecke neue Lieblingsorte. Dieser Prototyp konzentriert sich auf Flug-und-Hotel-Angebote sowie eigene Anreise."
-                      : modal === "service"
-                        ? "Plane deine Auszeit ganz entspannt. In der Demo kannst du Reisezeitraum, Reisende, Zimmer und Verpflegung individuell auswählen."
-                        : "Dies ist ein unabhängiger, nicht buchbarer Demonstrationsprototyp. DERTOUR Marken, Bildmaterial und Gestaltung dienen ausschließlich als Referenz für die angeforderte Demo. Es besteht keine Live-Verbindung zu DERTOUR Buchungssystemen."}
+                {
+                  {
+                    account:
+                      "Bu demoda gerçek üyelik veya giriş yoktur. Beğendiğin oteller Favorilerim’de, demo rezervasyonların Rezervasyonlarım’da saklanır.",
+                    agency:
+                      "Acente başvuruları bu prototipte simüle edilmez. Otel arama ve rezervasyon akışını kendin deneyebilirsin.",
+                    help: "Yardım merkezi bu demoda yer almaz. Sorularını demo sunucusuna iletebilirsin.",
+                    phone:
+                      "Bu demo üzerinden çağrı merkezi araması yapılmaz. Gerçek ETS iletişim kanallarını kullanmak için resmi siteyi ziyaret et.",
+                    product:
+                      "Bu prototip otel konaklamalarına odaklanır. Tur, villa, uçak ve diğer ürünler demo kapsamında değildir.",
+                    pricing:
+                      "Fiyatlar seçtiğin kişi sayısı ve gece için toplam konaklama tutarıdır. Bu demoda tüm fiyatlar örnek niteliğindedir; fiyat farkı iadesi uygulanmaz.",
+                    legal:
+                      "Bu, bağımsız ve rezervasyon alınamayan bir demo prototipidir. ETS markası, görseller ve tasarım yalnızca talep edilen demo için referans olarak kullanılır. ETS rezervasyon sistemleriyle canlı bağlantı yoktur.",
+                  }[modal]
+                }
               </p>
               <button
                 className="primary"
                 onClick={() =>
-                  modal === "account" ? go("/merkzettel") : search()
+                  modal === "account" ? go("/favorilerim") : search()
                 }
               >
-                {" "}
-                {modal === "account" ? "Zum Merkzettel" : "Urlaub entdecken"}
-                <Icon name="arrow" />
-              </button>
-            </>
-          )}
-          {modal === "magazine" && (
-            <>
-              <img
-                className="magazine-modal"
-                src={asset("c2d3796f720f58ba.webp")}
-                alt="Palmenstrand"
-              />
-              <h3>Einfach mal dem Meer zuhören</h3>
-              <p>
-                Warmer Sand unter den Füßen, eine sanfte Brise und ganz viel
-                Zeit für dich. Entdecke unsere Ideen für deine nächste Auszeit –
-                von Mallorcas Buchten bis zu den Traumstränden der Malediven.
-              </p>
-              <button className="primary" onClick={() => search("Malediven")}>
-                Traumurlaub entdecken <Icon name="arrow" />
+                {modal === "account" ? "Favorilerim’e Git" : "Otelleri Keşfet"}
               </button>
             </>
           )}
           {modal === "menu" && (
             <div className="option-list">
-              {[
-                "Urlaub suchen",
-                "Reiseziele",
-                "Merkzettel",
-                "Reisemagazin",
-                "Service",
-              ].map((t, i) => (
-                <button
-                  key={t}
-                  onClick={() =>
-                    i === 0
-                      ? search()
-                      : i === 2
-                        ? go("/merkzettel")
-                        : setModal(
-                            ["", "destination", "", "magazine", "service"][i],
-                          )
-                  }
-                >
-                  {t}
+              {navItems.map(([label, fn]) => (
+                <button key={label} onClick={fn}>
+                  {label}
                   <Icon name="chevron" />
                 </button>
               ))}
+              <button onClick={() => go("/favorilerim")}>
+                Favorilerim{saved.length ? ` (${saved.length})` : ""}
+                <Icon name="chevron" />
+              </button>
+              <button onClick={() => go("/rezervasyonlarim")}>
+                Rezervasyonlarım
+                <Icon name="chevron" />
+              </button>
+              <button onClick={() => setModal("account")}>
+                Hesabım
+                <Icon name="chevron" />
+              </button>
             </div>
           )}
         </Modal>
@@ -2105,6 +2200,7 @@ export function App() {
     </>
   );
 }
+
 function Counter({ label, subtitle, value, set, min, max }) {
   return (
     <div className="counter">
@@ -2114,7 +2210,7 @@ function Counter({ label, subtitle, value, set, min, max }) {
       </div>
       <div>
         <button
-          aria-label={`${label} weniger`}
+          aria-label={`${label} azalt`}
           disabled={value <= min}
           onClick={() => set(value - 1)}
         >
@@ -2122,7 +2218,7 @@ function Counter({ label, subtitle, value, set, min, max }) {
         </button>
         <strong>{value}</strong>
         <button
-          aria-label={`${label} mehr`}
+          aria-label={`${label} artır`}
           disabled={value >= max}
           onClick={() => set(value + 1)}
         >
@@ -2132,50 +2228,163 @@ function Counter({ label, subtitle, value, set, min, max }) {
     </div>
   );
 }
+
+function FilterGroup({ title, children }) {
+  return (
+    <details className="filter-group" open>
+      <summary>{title}</summary>
+      {children}
+    </details>
+  );
+}
+
 function FilterFields({
-  family,
-  setFamily,
-  stars,
-  setStars,
-  budget,
-  setBudget,
+  inDestination,
+  popular,
+  setPopular,
+  priceMin,
+  setPriceMin,
+  priceMax,
+  setPriceMax,
+  minScore,
+  setMinScore,
+  boardFilter,
+  setBoardFilter,
+  themeFilter,
+  setThemeFilter,
+  destination,
+  search,
+  onChange,
 }) {
+  const toggle = (list, set, value, name) => {
+    set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+    onChange(name);
+  };
+  const count = (fn) => inDestination.filter(fn).length;
   return (
     <div className="filter-fields">
-      <h3>Preis pro Person</h3>
-      <label>
-        Bis {euro(budget)}
-        <input
-          type="range"
-          min="500"
-          max="2500"
-          step="25"
-          value={budget}
-          onChange={(e) => setBudget(Number(e.target.value))}
-        />
-      </label>
-      <h3>Hotelkategorie</h3>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={stars}
-          onChange={(e) => setStars(e.target.checked)}
-        />
-        Mindestens 4 Sterne
-      </label>
-      <h3>Was dir wichtig ist</h3>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={family}
-          onChange={(e) => setFamily(e.target.checked)}
-        />
-        Familienfreundlich
-      </label>
-      <p className="muted">Alle Demo-Hotels verfügen über einen Pool.</p>
+      <FilterGroup title="Popüler Filtreler">
+        {[
+          ["Ultra Her Şey Dahil", (h) => h.board === "Ultra Her Şey Dahil"],
+          ["9 ve üstü", (h) => h.score >= 9],
+          ["Denize Sıfır", (h) => h.themes.includes("Denize Sıfır")],
+          ["Çocuk Dostu", (h) => h.family],
+        ].map(([label, fn]) => (
+          <label className="checkbox" key={label}>
+            <input
+              type="checkbox"
+              checked={popular.includes(label)}
+              onChange={() => toggle(popular, setPopular, label, "popular")}
+            />
+            <span>{label}</span>
+            <small>({count(fn)})</small>
+          </label>
+        ))}
+      </FilterGroup>
+      <FilterGroup title="Fiyat Aralığı">
+        <div className="price-range">
+          <label>
+            <span className="sr-only">En düşük fiyat</span>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              placeholder="Min. TL"
+              aria-label="En düşük fiyat"
+              value={priceMin}
+              onChange={(e) => {
+                setPriceMin(e.target.value);
+                onChange("price");
+              }}
+            />
+          </label>
+          <label>
+            <span className="sr-only">En yüksek fiyat</span>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              placeholder="Maks. TL"
+              aria-label="En yüksek fiyat"
+              value={priceMax}
+              onChange={(e) => {
+                setPriceMax(e.target.value);
+                onChange("price");
+              }}
+            />
+          </label>
+        </div>
+      </FilterGroup>
+      <FilterGroup title="Misafir Puanı">
+        <div className="score-filter">
+          {[
+            [9, "Mükemmel"],
+            [8, "Çok İyi"],
+            [7, "İyi"],
+            [6, "Orta"],
+          ].map(([n, label]) => (
+            <button
+              key={n}
+              type="button"
+              aria-pressed={minScore === n}
+              className={minScore === n ? "active" : ""}
+              onClick={() => {
+                setMinScore(minScore === n ? 0 : n);
+                onChange("score");
+              }}
+            >
+              <b>{n}+</b> {label}
+              <small>({count((h) => h.score >= n)})</small>
+            </button>
+          ))}
+        </div>
+      </FilterGroup>
+      <FilterGroup title="Konaklama Tipi">
+        {boards.map((b) => (
+          <label className="checkbox" key={b}>
+            <input
+              type="checkbox"
+              checked={boardFilter.includes(b)}
+              onChange={() => toggle(boardFilter, setBoardFilter, b, "board")}
+            />
+            <span>{b}</span>
+            <small>({count((h) => h.board === b)})</small>
+          </label>
+        ))}
+      </FilterGroup>
+      <FilterGroup title="Bölge">
+        <p className="muted">Popüler Bölgeler</p>
+        <div className="region-chips">
+          {destinations.map((d) => (
+            <button
+              type="button"
+              key={d}
+              className={d === destination ? "active" : ""}
+              aria-pressed={d === destination}
+              onClick={() => search(d)}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </FilterGroup>
+      <FilterGroup title="Temalar">
+        {themes.map((t) => (
+          <label className="checkbox" key={t}>
+            <input
+              type="checkbox"
+              checked={themeFilter.includes(t)}
+              onChange={() => toggle(themeFilter, setThemeFilter, t, "theme")}
+            />
+            <span>{t}</span>
+            <small>({count((h) => h.themes.includes(t))})</small>
+          </label>
+        ))}
+      </FilterGroup>
     </div>
   );
 }
+
 function Calendar({ offset, start, end, onSelect }) {
   const base = new Date(start + "T12:00:00");
   const year = base.getFullYear(),
@@ -2186,10 +2395,10 @@ function Calendar({ offset, start, end, onSelect }) {
   return (
     <div className="calendar">
       <h3>
-        {first.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+        {first.toLocaleDateString("tr-TR", { month: "long", year: "numeric" })}
       </h3>
       <div>
-        {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+        {["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"].map((d) => (
           <small key={d}>{d}</small>
         ))}
         {Array.from({ length: skip }, (_, i) => (
@@ -2204,7 +2413,7 @@ function Calendar({ offset, start, end, onSelect }) {
           ].join("-");
           return (
             <button
-              aria-label={date(v)}
+              aria-label={longDate(v)}
               key={v}
               className={
                 v === start || v === end
