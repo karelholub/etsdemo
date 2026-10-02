@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NativeBannerGuide } from "./NativeBanners";
 import { track, readConsent } from "../tracking";
 import { hotels, asset } from "../data";
-import { textFor, emailHTML } from "./content";
+import { textFor, emailHTML, tl } from "./content";
 import {
   newQuote,
   resumeURL,
@@ -10,13 +10,11 @@ import {
   priceFor,
   offerKey,
   watchURL,
+  TRANSFER_PRICE,
+  TRANSFER_MARGIN,
 } from "./model";
 import "./demo.css";
-const money = (n) =>
-  Number(n || 0).toLocaleString("de-DE", {
-    style: "currency",
-    currency: "EUR",
-  });
+const money = tl;
 export function Personalization({ demo, go, search }) {
   const { state: s, decision: d, live } = demo;
   const seen = useRef(new Set());
@@ -38,10 +36,10 @@ export function Personalization({ demo, go, search }) {
       hotels[0],
     c = textFor(d.key, s.destination);
   return (
-    <section className="dtr-personal container" aria-label="Deine Reiseideen">
+    <section className="ets-personal container" aria-label="Tatil fikirlerin">
       <img src={asset(h.image)} alt={s.destination} />
       <div>
-        <p className="dtr-eyebrow">{c.eyebrow}</p>
+        <p className="ets-eyebrow">{c.eyebrow}</p>
         <h2>{c.title}</h2>
         <p>{c.body}</p>
         <button
@@ -59,7 +57,7 @@ export function Personalization({ demo, go, search }) {
                       "care",
                       "cancelled",
                     ].includes(d.key)
-                  ? go("/meine-reise")
+                  ? go("/rezervasyonlarim")
                   : search(s.destination);
           }}
         >
@@ -75,23 +73,23 @@ export function PriceWatch({ demo, hotel, total, trip }) {
     [permission, setPermission] = useState(false);
   const s = demo.state;
   return (
-    <section className="dtr-watch" id="dtr-price-watch">
+    <section className="ets-watch" id="ets-price-watch">
       {readConsent() === "granted" && (
         <button
           type="button"
-          className="dtr-link dtr-banner-help"
-          id="dtr-price-help"
+          className="ets-link ets-banner-help"
+          id="ets-price-help"
         >
-          So funktioniert der Preisalarm
+          Fiyat alarmı nasıl çalışır?
         </button>
       )}
       <button
-        className="dtr-link"
-        data-dtr-watch-open
+        className="ets-link"
+        data-ets-watch-open
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        ♡ Preis beobachten
+        ♡ Fiyatı takip et
       </button>
       {open && (
         <form
@@ -116,7 +114,7 @@ export function PriceWatch({ demo, hotel, total, trip }) {
           }}
         >
           <label>
-            Dein Preislimit für die gesamte Reise (€)
+            Tüm konaklama için fiyat limitin (TL)
             <input
               type="number"
               min="1"
@@ -125,29 +123,29 @@ export function PriceWatch({ demo, hotel, total, trip }) {
               onChange={(e) => setThreshold(e.target.value)}
             />
           </label>
-          <label className="dtr-checkbox">
+          <label className="ets-checkbox">
             <input
               type="checkbox"
               required
               checked={permission}
               onChange={(e) => setPermission(e.target.checked)}
             />
-            Ich möchte Preisalarme für dieses Demo-Angebot erhalten. Es erfolgt
-            kein Versand.
+            Bu demo teklif için fiyat alarmı almak istiyorum. Gönderim
+            yapılmaz.
           </label>
-          <button className="primary">Preisalarm speichern</button>
+          <button className="primary">Fiyat alarmını kaydet</button>
         </form>
       )}
       {s.watch?.active && s.watch.hotel_id === hotel.id && (
         <p role="status">
-          Preisalarm bis {money(s.watch.threshold)} gespeichert.{" "}
+          {money(s.watch.threshold)} için fiyat alarmı kaydedildi.{" "}
           <button
-            className="dtr-link"
+            className="ets-link"
             onClick={() =>
               demo.act("watch", { watch: { ...s.watch, active: false } })
             }
           >
-            Beenden
+            Sonlandır
           </button>
         </p>
       )}
@@ -159,18 +157,18 @@ export function TripHub({ demo, search }) {
     b = s.booking;
   const [rating, setRating] = useState("5");
   return (
-    <section className="container dtr-hub">
-      <p className="dtr-eyebrow">DEIN URLAUB. DEINE WELT.</p>
-      <h1>Meine Reise</h1>
-      <p className="dtr-muted">
-        Synthetische Demo · keine Buchung oder Zahlung
+    <section className="container ets-hub">
+      <p className="ets-eyebrow">ETS İLE TATİL</p>
+      <h1>Rezervasyonlarım</h1>
+      <p className="ets-muted">
+        Sentetik demo · gerçek rezervasyon veya ödeme yok
       </p>
       {b ? (
         <>
-          <div className="dtr-trip-grid">
-            <article className="dtr-card">
+          <div className="ets-trip-grid">
+            <article className="ets-card">
               <img
-                className="dtr-trip-photo"
+                className="ets-trip-photo"
                 src={asset(
                   (hotels.find((h) => h.id === b.hotel_id) || hotels[0]).image,
                 )}
@@ -178,58 +176,58 @@ export function TripHub({ demo, search }) {
               />
               <h2>{b.hotel}</h2>
               <p>
-                {new Date(b.start).toLocaleDateString("de-DE")} –{" "}
-                {new Date(b.end).toLocaleDateString("de-DE")}
+                {new Date(b.start).toLocaleDateString("tr-TR")} –{" "}
+                {new Date(b.end).toLocaleDateString("tr-TR")}
               </p>
               <p>
                 {b.room} · {b.board}
               </p>
               <p>
-                {b.adults} Erwachsene · {b.children} Kinder
+                {b.adults} Yetişkin · {b.children} Çocuk
               </p>
               <strong>{money(b.total)}</strong>
               <p>
-                Status:{" "}
+                Durum:{" "}
                 {{
-                  booked: "Bestätigt",
-                  cancelled: "Storniert",
-                  completed: "Abgeschlossen",
+                  booked: "Onaylandı",
+                  cancelled: "İptal edildi",
+                  completed: "Tamamlandı",
                 }[s.stage] || s.stage}
               </p>
             </article>
-            <article className="dtr-card">
-              <h2>Gut vorbereitet</h2>
-              <p>Deine Checkliste für die Reise.</p>
+            <article className="ets-card">
+              <h2>Tatile hazırlık</h2>
+              <p>Tatil kontrol listen.</p>
               {[
-                "Reisedokumente prüfen",
-                "Einreisebestimmungen prüfen",
-                "Gepäck und Anreise planen",
+                "Kimlik ve rezervasyon belgelerini kontrol et",
+                "Otel giriş saatini kontrol et",
+                "Bavulunu ve ulaşımını planla",
               ].map((t) => (
-                <label className="dtr-checkbox" key={t}>
+                <label className="ets-checkbox" key={t}>
                   <input type="checkbox" />
                   {t}
                 </label>
               ))}
               {s.complaint && (
-                <div role="status" className="dtr-notice">
-                  <strong>Dein Anliegen wird bearbeitet.</strong>
-                  <p>Werbliche Reiseangebote sind pausiert.</p>
+                <div role="status" className="ets-notice">
+                  <strong>Talebin işleme alındı.</strong>
+                  <p>Pazarlama amaçlı teklifler duraklatıldı.</p>
                   <button
-                    className="dtr-link"
+                    className="ets-link"
                     onClick={() =>
                       demo.act("case_closed", { complaint: false })
                     }
                   >
-                    Demo-Anliegen schließen
+                    Demo talebini kapat
                   </button>
                 </div>
               )}
               {!s.complaint && s.stage === "booked" && (
                 <button
-                  className="dtr-link"
+                  className="ets-link"
                   onClick={() => demo.act("case_opened", { complaint: true })}
                 >
-                  Demo-Anliegen eröffnen
+                  Demo talebi oluştur
                 </button>
               )}
             </article>
@@ -237,67 +235,67 @@ export function TripHub({ demo, search }) {
           {s.stage === "booked" &&
             !s.complaint &&
             new Date(s.clock) < new Date(b.start) && (
-              <article className="dtr-card dtr-extra">
+              <article className="ets-card ets-extra">
                 <div>
-                  <p className="dtr-eyebrow">PASSEND ZU DEINER REISE</p>
-                  <h2>Entspannt vom Flughafen zum Hotel</h2>
+                  <p className="ets-eyebrow">TATİLİNE UYGUN</p>
+                  <h2>Havalimanından otele rahat ulaşım</h2>
                   <p>
                     {s.extras.includes("transfer")
-                      ? "Dein Transfer ist bereits enthalten."
-                      : "Ein Flughafentransfer ist in deiner Demo-Buchung noch nicht enthalten."}
+                      ? "Transferin rezervasyonuna dahil."
+                      : "Havalimanı transferi demo rezervasyonunda henüz yok."}
                   </p>
                 </div>
                 {!s.extras.includes("transfer") && (
                   <button
                     className="primary"
                     onClick={() =>
-                      demo.act("extra", { extra: "transfer", value: 79 })
+                      demo.act("extra", { extra: "transfer", value: TRANSFER_PRICE })
                     }
                   >
-                    Transfer ergänzen · 79 € (Demo)
+                    Transfer ekle · {money(TRANSFER_PRICE)} (Demo)
                   </button>
                 )}
               </article>
             )}
           {s.stage === "completed" && !s.feedback && (
             <form
-              className="dtr-card"
+              className="ets-card"
               onSubmit={(e) => {
                 e.preventDefault();
                 demo.act("feedback", { rating: Number(rating) });
               }}
             >
-              <h2>Wie war dein Urlaub?</h2>
+              <h2>Tatilin nasıl geçti?</h2>
               <label>
-                Deine Bewertung
+                Puanın
                 <select
                   value={rating}
                   onChange={(e) => setRating(e.target.value)}
                 >
                   {[5, 4, 3, 2, 1].map((n) => (
                     <option key={n} value={n}>
-                      {n} von 5
+                      {n} / 5
                     </option>
                   ))}
                 </select>
               </label>
-              <button className="primary">Feedback speichern</button>
+              <button className="primary">Değerlendirmeyi kaydet</button>
             </form>
           )}
-          {s.feedback && <p role="status">Danke für dein Feedback.</p>}
+          {s.feedback && <p role="status">Değerlendirmen için teşekkürler.</p>}
         </>
       ) : (
-        <div className="dtr-card">
-          <h2>Deine nächste Reise beginnt hier</h2>
-          <p>Nach deiner Demo-Buchung findest du hier alle Details.</p>
+        <div className="ets-card">
+          <h2>Sıradaki tatilin burada başlıyor</h2>
+          <p>Demo rezervasyonundan sonra tüm detaylar burada görünür.</p>
           <button className="primary" onClick={() => search(s.destination)}>
-            Urlaub finden
+            Tatil bul
           </button>
         </div>
       )}
-      <article className="dtr-card">
-        <h2>Deine Kommunikationswünsche</h2>
-        <label className="dtr-checkbox">
+      <article className="ets-card">
+        <h2>İletişim tercihlerin</h2>
+        <label className="ets-checkbox">
           <input
             type="checkbox"
             checked={s.email_permission}
@@ -305,9 +303,9 @@ export function TripHub({ demo, search }) {
               demo.act("permission", { email_permission: e.target.checked })
             }
           />
-          Personalisierte Reiseideen und E-Mail-Vorschauen erlauben
+          Kişiselleştirilmiş tatil önerilerine ve e-posta önizlemelerine izin veriyorum
         </label>
-        <label className="dtr-checkbox">
+        <label className="ets-checkbox">
           <input
             type="checkbox"
             checked={s.ads_permission}
@@ -315,7 +313,7 @@ export function TripHub({ demo, search }) {
               demo.act("permission", { ads_permission: e.target.checked })
             }
           />
-          Demo-Zielgruppen für passende Werbung erlauben (kein Export)
+          Uygun reklamlar için demo hedef kitlelerine izin veriyorum (dışa aktarım yok)
         </label>
       </article>
     </section>
@@ -353,10 +351,10 @@ export function Presenter({ demo, go }) {
       .slice(0, 10),
     adults: 2,
     children: 0,
-    room: "Doppelzimmer Standard",
-    board: "All Inclusive",
-    travelType: "Flug und Hotel",
-    departure: "Frankfurt",
+    room: "Standart Oda",
+    board: h.board,
+    travelType: "Sadece Otel",
+    departure: "İstanbul",
   };
   const localEligibility = emailEligibility(s, d);
   const eligibility = live
@@ -367,38 +365,38 @@ export function Presenter({ demo, go }) {
   function seedBooking() {
     const q = s.quote || newQuote(h, trip, s);
     act("purchase", {
-      booking: { ...q, id: "DTR-" + crypto.randomUUID(), quote_id: q.id },
+      booking: { ...q, id: "ETS-" + crypto.randomUUID(), quote_id: q.id },
       value: q.total,
     });
   }
   return (
     <>
       <button
-        className="dtr-demo-toggle"
+        className="ets-demo-toggle"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
       >
         Meiro · Demo Studio
       </button>
       {open && (
-        <aside className="dtr-studio" aria-label="Meiro Demo Studio">
-          <div className="dtr-studio-head">
+        <aside className="ets-studio" aria-label="Meiro Demo Studio">
+          <div className="ets-studio-head">
             <div>
-              <p className="dtr-eyebrow">DERTOUR × MEIRO</p>
+              <p className="ets-eyebrow">ETS × MEIRO</p>
               <h2>From inspiration to the next trip</h2>
             </div>
             <button
-              className="dtr-close"
+              className="ets-close"
               aria-label="Close demo studio"
               onClick={() => setOpen(false)}
             >
               ×
             </button>
           </div>
-          <p className="dtr-notice">
+          <p className="ets-notice">
             Synthetic demo · accelerated time · website and email previews only
           </p>
-          <div className="dtr-tabs">
+          <div className="ets-tabs">
             {[
               ["story", "Journey"],
               ["email", "Email previews"],
@@ -417,7 +415,7 @@ export function Presenter({ demo, go }) {
           {tab === "banners" && <NativeBannerGuide />}
           {tab === "story" && (
             <>
-              <div className="dtr-columns">
+              <div className="ets-columns">
                 <section>
                   <label>
                     Start a new synthetic scenario
@@ -431,10 +429,10 @@ export function Presenter({ demo, go }) {
                       <option value="lapsed">Lapsed traveler</option>
                     </select>
                   </label>
-                  <button className="dtr-link" onClick={() => reset(s.persona)}>
+                  <button className="ets-link" onClick={() => reset(s.persona)}>
                     Reset this scenario
                   </button>
-                  <p className="dtr-muted">
+                  <p className="ets-muted">
                     Reset creates a new run, preserving previous run outcomes
                     for reporting.
                   </p>
@@ -451,7 +449,7 @@ export function Presenter({ demo, go }) {
                       <option value="control">Control</option>
                     </select>
                   </label>
-                  <p className="dtr-muted">
+                  <p className="ets-muted">
                     Assignment is persistent within a run. Manual override is
                     for demonstrations, not an experiment result.
                   </p>
@@ -471,7 +469,7 @@ export function Presenter({ demo, go }) {
                       )}
                     </select>
                   </label>
-                  <label className="dtr-checkbox">
+                  <label className="ets-checkbox">
                     <input
                       type="checkbox"
                       checked={s.email_permission}
@@ -483,7 +481,7 @@ export function Presenter({ demo, go }) {
                     />
                     Synthetic marketing permission
                   </label>
-                  <label className="dtr-checkbox">
+                  <label className="ets-checkbox">
                     <input
                       type="checkbox"
                       checked={s.ads_permission}
@@ -495,15 +493,15 @@ export function Presenter({ demo, go }) {
                   </label>
                 </section>
                 <section>
-                  <p className="dtr-eyebrow">DECISION EXPLAINER</p>
+                  <p className="ets-eyebrow">DECISION EXPLAINER</p>
                   <h3>{d.key}</h3>
                   <p>{d.reason}</p>
-                  <span className={"dtr-status " + (live ? "live" : "")}>
+                  <span className={"ets-status " + (live ? "live" : "")}>
                     {live
                       ? "Live Meiro decision"
                       : "Local rule preview · not live Meiro"}
                   </span>
-                  <p className="dtr-muted">{status}</p>
+                  <p className="ets-muted">{status}</p>
                   <dl>
                     <dt>Lifecycle</dt>
                     <dd>{s.stage}</dd>
@@ -520,11 +518,11 @@ export function Presenter({ demo, go }) {
                       {eligibility.allowed ? "Eligible" : eligibility.reason}
                     </dd>
                     <dt>Run</dt>
-                    <dd className="dtr-id">{s.run_id}</dd>
+                    <dd className="ets-id">{s.run_id}</dd>
                   </dl>
                 </section>
               </div>
-              <section className="dtr-actions">
+              <section className="ets-actions">
                 <h3>Walk through the lifecycle</h3>
                 <button
                   onClick={() => {
@@ -547,7 +545,7 @@ export function Presenter({ demo, go }) {
                 <button
                   onClick={() => {
                     seedBooking();
-                    go("/meine-reise");
+                    go("/rezervasyonlarim");
                   }}
                 >
                   4 · Confirm demo booking
@@ -566,7 +564,7 @@ export function Presenter({ demo, go }) {
                   {s.complaint ? "Close service case" : "Open service case"}
                 </button>
               </section>
-              <section className="dtr-actions">
+              <section className="ets-actions">
                 <h3>Demo clock</h3>
                 <p>{new Date(s.clock).toLocaleString("en-GB")}</p>
                 {[2, 24, 48].map((hours) => (
@@ -585,8 +583,8 @@ export function Presenter({ demo, go }) {
                         offer_key: offerKey(h, trip),
                         active: true,
                         permission: true,
-                        threshold: 1000,
-                        current_price: 1200,
+                        threshold: 100000,
+                        current_price: 120000,
                         expires_at: new Date(
                           new Date(s.clock).getTime() + 30 * 86400000,
                         ).toISOString(),
@@ -600,11 +598,11 @@ export function Presenter({ demo, go }) {
                   disabled={!s.watch?.active}
                   onClick={() =>
                     act("price_changed", {
-                      watch: { ...s.watch, current_price: 950 },
+                      watch: { ...s.watch, current_price: 95000 },
                     })
                   }
                 >
-                  Simulate price drop to €950
+                  Simulate price drop to 95.000 TL
                 </button>
               </section>
             </>
@@ -637,7 +635,7 @@ export function Presenter({ demo, go }) {
                 <summary>
                   Template gallery (design preview only; bypasses eligibility)
                 </summary>
-                <div className="dtr-actions">
+                <div className="ets-actions">
                   {[
                     "research",
                     "recovery",
@@ -662,12 +660,12 @@ export function Presenter({ demo, go }) {
               </details>
               {preview && (
                 <>
-                  <p className="dtr-muted">
+                  <p className="ets-muted">
                     {preview.key} · content snapshot at preview time
                   </p>
                   <iframe
-                    title="DERTOUR email preview"
-                    className="dtr-email"
+                    title="ETS email preview"
+                    className="ets-email"
                     sandbox="allow-popups allow-popups-to-escape-sandbox"
                     srcDoc={emailHTML(
                       preview.key,
@@ -684,25 +682,25 @@ export function Presenter({ demo, go }) {
             <>
               <p>
                 Meiro dashboards show synthetic demo activity. They do not
-                establish DERTOUR performance or causal lift.
+                establish ETS performance or causal lift.
               </p>
-              <div className="dtr-actions">
+              <div className="ets-actions">
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  href="https://travel.eu1.pipes.meiro.io/reporting"
+                  href="https://ets-demo.eu1.pipes.meiro.io/reporting"
                 >
                   Open Meiro reporting ↗
                 </a>
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  href="https://travel.eu1.pipes.meiro.io/goals"
+                  href="https://ets-demo.eu1.pipes.meiro.io/goals"
                 >
                   Open Meiro goals ↗
                 </a>
               </div>
-              <div className="dtr-metrics">
+              <div className="ets-metrics">
                 <div>
                   <small>Current run net booking value</small>
                   <strong>
@@ -712,7 +710,7 @@ export function Presenter({ demo, go }) {
                 <div>
                   <small>Ancillary contribution (demo)</small>
                   <strong>
-                    {money(s.stage === "cancelled" ? 0 : s.extras.length * 24)}
+                    {money(s.stage === "cancelled" ? 0 : s.extras.length * TRANSFER_MARGIN)}
                   </strong>
                 </div>
                 <div>
@@ -741,9 +739,9 @@ export function Presenter({ demo, go }) {
   );
 }
 function touchpoint(s, d, channel, action) {
-  track("dtr_touchpoint", {
+  track("ets_touchpoint", {
     synthetic: true,
-    demo_site: "dertour",
+    demo_site: "ets",
     event_id: crypto.randomUUID(),
     run_id: s.run_id,
     decision: d.key,
@@ -758,26 +756,26 @@ function ROI() {
     [tb, setTb] = useState(160),
     [c, setC] = useState(1000),
     [cb, setCb] = useState(30),
-    [aov, setAov] = useState(2000),
+    [aov, setAov] = useState(85000),
     [margin, setMargin] = useState(12),
-    [cost, setCost] = useState(4000);
+    [cost, setCost] = useState(170000);
   const inc = t > 0 && c > 0 ? t * (tb / t - cb / c) : null,
     contribution = inc === null ? null : (inc * aov * margin) / 100;
   return (
-    <section className="dtr-card">
-      <p className="dtr-eyebrow">
+    <section className="ets-card">
+      <p className="ets-eyebrow">
         ILLUSTRATIVE BUSINESS CASE · NOT MEASURED RESULTS
       </p>
       <h3>What would incremental value look like?</h3>
-      <div className="dtr-roi-inputs">
+      <div className="ets-roi-inputs">
         {[
           ["Treatment travelers", t, setT],
           ["Treatment bookings", tb, setTb],
           ["Control travelers", c, setC],
           ["Control bookings", cb, setCb],
-          ["Net booking value (€)", aov, setAov],
+          ["Net booking value (TL)", aov, setAov],
           ["Contribution margin (%)", margin, setMargin],
-          ["Total intervention cost (€)", cost, setCost],
+          ["Total intervention cost (TL)", cost, setCost],
         ].map(([label, value, set]) => (
           <label key={label}>
             {label}
@@ -790,7 +788,7 @@ function ROI() {
           </label>
         ))}
       </div>
-      <div className="dtr-metrics">
+      <div className="ets-metrics">
         <div>
           <small>Incremental bookings</small>
           <strong>{inc?.toFixed(1) ?? "—"}</strong>
@@ -808,7 +806,7 @@ function ROI() {
           </strong>
         </div>
       </div>
-      <p className="dtr-muted">
+      <p className="ets-muted">
         Hypothetical inputs, no statistical significance claimed. ROI =
         (incremental contribution − intervention cost) / cost. ROAS requires
         actual ad spend and attributed net revenue.

@@ -7,10 +7,11 @@ import {
   snapshot,
   decide,
   freshState,
+  LIFECYCLE_EVENT,
 } from "./model";
 const API =
   import.meta.env.VITE_MEIRO_PROFILE_URL ||
-  "https://travel.eu1.pipes.meiro.io/profile-api/dertour-demo";
+  "https://ets-demo.eu1.pipes.meiro.io/profile-api/ets-demo";
 export function useLifecycle() {
   const [state, setState] = useState(readState),
     [remote, setRemote] = useState(null),
@@ -21,7 +22,7 @@ export function useLifecycle() {
       return current;
     if (type === "extra" && current.extras.includes(p.extra)) return current;
     const s = saveState(reduce(current, type, p));
-    track("dtr_demo_state", {
+    track("ets_demo_state", {
       ...snapshot(s),
       action: type,
       event_id: crypto.randomUUID(),
@@ -33,18 +34,18 @@ export function useLifecycle() {
     s.experiment = readState().experiment;
     if (persona === "vip") {
       s.history_count = 6;
-      s.history_value = 14800;
+      s.history_value = 620000;
       s.last_trip_days = 70;
     }
     if (persona === "lapsed") {
       s.history_count = 2;
-      s.history_value = 4100;
+      s.history_value = 175000;
       s.last_trip_days = 440;
     }
     s.email_permission = true;
     s.ads_permission = true;
     saveState(s);
-    track("dtr_demo_state", {
+    track("ets_demo_state", {
       ...snapshot(s),
       action: "reset",
       event_id: crypto.randomUUID(),
@@ -55,8 +56,8 @@ export function useLifecycle() {
       setState(e.detail);
       setRemote(null);
     };
-    window.addEventListener("dtr-lifecycle", listener);
-    return () => window.removeEventListener("dtr-lifecycle", listener);
+    window.addEventListener(LIFECYCLE_EVENT, listener);
+    return () => window.removeEventListener(LIFECYCLE_EVENT, listener);
   }, []);
   useEffect(() => {
     let stopped = false,
@@ -88,7 +89,7 @@ export function useLifecycle() {
         }
         if (!response.ok) throw Error(`Profile API ${response.status}`);
         const json = await response.json();
-        const raw = json.attributes?.dtr_decision;
+        const raw = json.attributes?.ets_decision;
         const scalar = (value) => {
           const first = Array.isArray(value) ? value[0] : value;
           return first
@@ -101,7 +102,7 @@ export function useLifecycle() {
             : null;
         };
         const row = scalar(raw);
-        const eligibility = scalar(json.attributes?.dtr_message_eligibility);
+        const eligibility = scalar(json.attributes?.ets_message_eligibility);
         if (
           !row ||
           row.run_id !== state.run_id ||

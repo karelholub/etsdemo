@@ -1,5 +1,15 @@
+import {
+  boardFactor,
+  rooms,
+  travelSupplement,
+} from "../data.js";
 // Synthetic travel state. Meiro computes the live decision from these business inputs.
-export const STATE_KEY = "dtr-lifecycle-v1";
+export const STATE_KEY = "ets-lifecycle-v1";
+export const LIFECYCLE_EVENT = "ets-lifecycle";
+export const CURRENCY = "TRY";
+// Synthetic airport-transfer extra and its assumed contribution (TL).
+export const TRANSFER_PRICE = 2400;
+export const TRANSFER_MARGIN = 720;
 export const now = () => new Date().toISOString();
 export const uid = () => crypto.randomUUID();
 export function freshState(persona = "researcher") {
@@ -9,11 +19,11 @@ export function freshState(persona = "researcher") {
     revision: uid(),
     run_id: id,
     persona,
-    demo_site: "dertour",
+    demo_site: "ets",
     synthetic: true,
     experiment: parseInt(id[0], 16) < 3 ? "control" : "treatment",
     stage: "new",
-    destination: "Mallorca",
+    destination: "Bodrum",
     email_permission: false,
     ads_permission: false,
     clock: now(),
@@ -41,7 +51,7 @@ export function readState() {
 }
 export function saveState(s) {
   localStorage.setItem(STATE_KEY, JSON.stringify(s));
-  window.dispatchEvent(new CustomEvent("dtr-lifecycle", { detail: s }));
+  window.dispatchEvent(new CustomEvent(LIFECYCLE_EVENT, { detail: s }));
   return s;
 }
 export function hoursSince(s, t) {
@@ -243,13 +253,15 @@ export function snapshot(s) {
     run_id: s.run_id,
     revision: s.revision,
     synthetic: true,
-    demo_site: "dertour",
+    demo_site: "ets",
+    currency: CURRENCY,
     persona: s.persona,
     experiment: s.experiment,
     stage: s.stage,
     destination: s.destination,
     email_permission: s.email_permission,
     ads_permission: s.ads_permission,
+    efilli_consent_marketing: s.email_permission ? "true" : "false",
     demo_clock: s.clock,
     last_action_at: s.last_action_at,
     history_count: s.history_count,
@@ -263,8 +275,8 @@ export function snapshot(s) {
     booked_value: s.booking?.total || 0,
     net_value: s.stage === "cancelled" ? 0 : s.booking?.total || 0,
     transfer_owned: s.extras.includes("transfer"),
-    ancillary_value: s.stage === "cancelled" ? 0 : s.extras.length * 79,
-    ancillary_margin: s.stage === "cancelled" ? 0 : s.extras.length * 24,
+    ancillary_value: s.stage === "cancelled" ? 0 : s.extras.length * TRANSFER_PRICE,
+    ancillary_margin: s.stage === "cancelled" ? 0 : s.extras.length * TRANSFER_MARGIN,
     feedback_received: !!s.feedback,
     watch_active: !!s.watch?.active,
     watch_permission: !!s.watch?.permission,
@@ -280,30 +292,38 @@ export function snapshot(s) {
     updated_at: now(),
   };
 }
+export const nightsBetween = (start, end) =>
+  start && end
+    ? Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000))
+    : 7;
+// Reference price is for 2 adults, 7 nights, Standart Oda, the hotel's default
+// board and "Sadece Otel". Children are charged at 50%.
 export function priceFor(
   h,
   {
-    board = "Halbpension",
-    room = "Doppelzimmer Standard",
-    travelType = "Flug und Hotel",
+    board = h.board || "Kahvaltı Dahil",
+    room = "Standart Oda",
+    travelType = "Sadece Otel",
     adults = 2,
     children = 0,
-  },
+    start,
+    end,
+  } = {},
 ) {
-  return (
-    Math.round(
-      (h.price +
-        (board === "All Inclusive"
-          ? 177
-          : board === "Halbpension Plus"
-            ? 51
-            : 0) +
-        (room === "Doppelzimmer Superior" ? 30 : 0) -
-        (travelType === "Nur Hotel" ? 176 : 0)) *
-        (adults + children * 0.65) *
-        100,
-    ) / 100
-  );
+  const perAdultWeek =
+    h.price / 2 / (boardFactor[h.board || "Kahvaltı Dahil"] || 1);
+  const roomFactor = rooms.find((r) => r.name === room)?.factor || 1;
+  const party = Number(adults) + Number(children) * 0.5;
+  const stay =
+    perAdultWeek *
+    (boardFactor[board] || 1) *
+    roomFactor *
+    party *
+    (nightsBetween(start, end) / 7);
+  const transport =
+    (travelSupplement[travelType] || 0) *
+    (Number(adults) + Number(children));
+  return Math.round(stay + transport);
 }
 export function newQuote(h, trip, s) {
   return {
@@ -319,7 +339,7 @@ export function newQuote(h, trip, s) {
   };
 }
 export function resumeURL(q) {
-  return `/buchung/${q.hotel_id}?${new URLSearchParams({ destination: q.destination, start: q.start, end: q.end, adults: q.adults, children: q.children, board: q.board, room: q.room, travelType: q.travelType, departure: q.departure, quote: q.id })}`;
+  return `/rezervasyon/${q.hotel_id}?${new URLSearchParams({ destination: q.destination, start: q.start, end: q.end, adults: q.adults, children: q.children, board: q.board, room: q.room, travelType: q.travelType, departure: q.departure, quote: q.id })}`;
 }
 
 export const offerKey = (hotel, trip) =>
@@ -335,4 +355,4 @@ export const offerKey = (hotel, trip) =>
   ]);
 
 export const watchURL = (watch) =>
-  `/hotel/${watch.hotel_id}?${new URLSearchParams(watch.trip || {})}`;
+  `/otel/${watch.hotel_id}?${new URLSearchParams(watch.trip || {})}`;
