@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
-  await page.route("https://travel.eu1.pipes.meiro.io/**", (r) =>
+  await page.route("https://ets-demo.eu1.pipes.meiro.io/**", (r) =>
     r.fulfill({ contentType: "application/json", body: "{}" }),
   );
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Nur notwendige", exact: true })
+    .getByRole("button", { name: "Sadece Gerekli", exact: true })
     .click();
 });
 test("presenter lifecycle, email cap, cancellation and responsive trip hub", async ({
@@ -40,7 +40,7 @@ test("presenter lifecycle, email cap, cancellation and responsive trip hub", asy
   await expect(
     page
       .frameLocator("iframe")
-      .getByRole("heading", { name: "Nur noch ein Schritt bis zum Urlaub" }),
+      .getByRole("heading", { name: "Tatiline sadece bir adım kaldı" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Preview eligible email", exact: true }),
@@ -57,12 +57,12 @@ test("presenter lifecycle, email cap, cancellation and responsive trip hub", asy
     .click();
   await page
     .getByRole("button", {
-      name: "Transfer ergänzen · 79 € (Demo)",
+      name: "Transfer ekle · 2.400 TL (Demo)",
       exact: true,
     })
     .click();
   await expect(
-    page.getByText("Dein Transfer ist bereits enthalten."),
+    page.getByText("Transferin rezervasyonuna dahil."),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Meiro · Demo Studio", exact: true })
@@ -116,7 +116,7 @@ test("expired saved quote is blocked and price watch requires explicit permissio
     .getByRole("button", { name: "Seed explicit price watch", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Simulate price drop to €950", exact: true })
+    .getByRole("button", { name: "Simulate price drop to 95.000 TL", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "price", exact: true }),
@@ -142,34 +142,34 @@ test("watched price remains consistent through the exact quote and booking", asy
     .getByRole("button", { name: "Seed explicit price watch", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Simulate price drop to €950", exact: true })
+    .getByRole("button", { name: "Simulate price drop to 95.000 TL", exact: true })
     .click();
   const watch = await page.evaluate(
-    () => JSON.parse(localStorage.getItem("dtr-lifecycle-v1")).watch,
+    () => JSON.parse(localStorage.getItem("ets-lifecycle-v1")).watch,
   );
   await page.goto(
-    `/hotel/${watch.hotel_id}?${new URLSearchParams(watch.trip)}`,
+    `/otel/${watch.hotel_id}?${new URLSearchParams(watch.trip)}`,
   );
-  await expect(page.locator(".booking-summary")).toContainText("950");
+  await expect(page.locator(".booking-summary")).toContainText("95.000 TL");
   await page
-    .getByRole("button", { name: "Angebot prüfen", exact: true })
+    .getByRole("button", { name: "Rezervasyona Devam Et", exact: true })
     .click();
   await page.locator("[name=first]").fill("Demo");
   await page.locator("[name=last]").fill("Traveler");
   await page.locator("[name=email]").fill("preview@example.invalid");
   await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "Demo-Buchung abschließen", exact: true })
+    .getByRole("button", { name: "Demo Rezervasyonu Tamamla", exact: true })
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "Deine Demo-Reise ist bestätigt!",
+      name: "Demo rezervasyonun onaylandı!",
       exact: true,
     }),
   ).toBeVisible();
   expect(
     await page.evaluate(
-      () => JSON.parse(localStorage.getItem("dtr-lifecycle-v1")).booking.total,
+      () => JSON.parse(localStorage.getItem("ets-lifecycle-v1")).booking.total,
     ),
-  ).toBe(950);
+  ).toBe(95000);
 });

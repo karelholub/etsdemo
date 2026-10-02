@@ -7,10 +7,10 @@ test("SDK-owned slot survives React updates, navigation and consent withdrawal",
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("https://travel.eu1.pipes.meiro.io/**", (route) =>
+  await page.route("https://ets-demo.eu1.pipes.meiro.io/**", (route) =>
     route.fulfill({ contentType: "application/json", body: "{}" }),
   );
-  await page.route("https://travel.eu1.pipes.meiro.io/mpt.js", (route) =>
+  await page.route("https://ets-demo.eu1.pipes.meiro.io/mpt.js", (route) =>
     route.fulfill({
       contentType: "application/javascript",
       body: `
@@ -18,7 +18,7 @@ test("SDK-owned slot survives React updates, navigation and consent withdrawal",
       if (command !== 'config' || !config.web_banners) return;
       document.querySelectorAll('[data-test-sdk-banner]').forEach(node => node.remove());
       if (!config.web_banners.enabled) return;
-      const anchor = document.querySelector('#dtr-meiro-inpage');
+      const anchor = document.querySelector('#ets-meiro-inpage');
       if (anchor && location.pathname === '/') {
         const iframe = document.createElement('iframe');
         iframe.dataset.testSdkBanner = 'true';
@@ -31,9 +31,9 @@ test("SDK-owned slot survives React updates, navigation and consent withdrawal",
   );
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Alle akzeptieren", exact: true })
+    .getByRole("button", { name: "Tümünü Kabul Et", exact: true })
     .click();
-  const banner = page.locator("#dtr-meiro-inpage iframe");
+  const banner = page.locator("#ets-meiro-inpage iframe");
   await expect(banner).toHaveCount(1);
   await page
     .getByRole("button", { name: "Meiro · Demo Studio", exact: true })
@@ -49,17 +49,17 @@ test("SDK-owned slot survives React updates, navigation and consent withdrawal",
     .click();
   await expect(banner).toHaveCount(1);
   await page
-    .getByRole("button", { name: "Cookie-Einstellungen", exact: true })
+    .getByRole("button", { name: "Çerez Ayarları", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Nur notwendige", exact: true })
+    .getByRole("button", { name: "Sadece Gerekli", exact: true })
     .click();
   await expect(banner).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Cookie-Einstellungen", exact: true })
+    .getByRole("button", { name: "Çerez Ayarları", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Alle akzeptieren", exact: true })
+    .getByRole("button", { name: "Tümünü Kabul Et", exact: true })
     .click();
   await expect(banner).toHaveCount(1);
   await page
@@ -72,7 +72,7 @@ test("SDK-owned slot survives React updates, navigation and consent withdrawal",
   await page
     .getByRole("button", { name: "Close demo studio", exact: true })
     .click();
-  await expect(page).toHaveURL(/meine-reise/);
+  await expect(page).toHaveURL(/rezervasyonlarim/);
   await expect(page.locator("[data-test-sdk-banner]")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
