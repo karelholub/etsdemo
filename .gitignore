@@ -8,3 +8,4 @@ playwright-report/
 mobile/.build/
 mobile/DerivedData/
 **/xcuserdata/
+ref/out/
